@@ -1,0 +1,1112 @@
+// CULT — production schema (MySQL)
+// Money is always Decimal(10,2). Never Float.
+// Soft delete = `deletedAt` on catalogue/customer entities; orders are never deleted.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Identity & access ───────────────────────────
+
+enum Role {
+  CUSTOMER
+  STAFF
+  ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique(length: 191)
+  phone           String?   @unique(length: 32)
+  passwordHash    String    @db.VarChar(255)
+  firstName       String?   @db.VarChar(100)
+  lastName        String?   @db.VarChar(100)
+  role            Role      @default(CUSTOMER)
+  isActive        Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  /// Explicit consent to receive marketing on WhatsApp. Having someone's
+  /// number is not permission to message them, and Meta requires opt-in.
+  whatsappOptIn   Boolean   @default(false)
+  whatsappOptInAt DateTime?
+  lastLoginAt     DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  addresses         Address[]
+  orders            Order[]
+  carts             Cart[]
+  wishlist          Wishlist?
+  reviews           Review[]
+  couponUsages      CouponUsage[]
+  sessions          Session[]
+  resetTokens       PasswordResetToken[]
+  auditLogs         AuditLog[]
+  aiChatMessages    AiChatMessage[]
+  events            CustomerEvent[]
+  whatsappMessages  WhatsAppMessageLog[]
+  restrictedCoupons Coupon[]             @relation("CouponCustomers")
+
+  @@index([role])
+  @@index([deletedAt])
+  @@index([createdAt])
+}
+
+/// Server-side session registry. The cookie carries a signed JWT whose `sid`
+/// must still exist here — this is what makes logout and revocation real.
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?   @db.VarChar(255)
+  ip        String?   @db.VarChar(64)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique(length: 191)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+}
+
+model Address {
+  id        String      @id @default(cuid())
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type      AddressType @default(SHIPPING)
+  fullName  String      @db.VarChar(150)
+  phone     String      @db.VarChar(32)
+  email     String?     @db.VarChar(191)
+  line1     String      @db.VarChar(255)
+  line2     String?     @db.VarChar(255)
+  landmark  String?     @db.VarChar(255)
+  city      String      @db.VarChar(100)
+  state     String      @db.VarChar(100)
+  pincode   String      @db.VarChar(12)
+  country   String      @default("India") @db.VarChar(100)
+  isDefault Boolean     @default(false)
+  deletedAt DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  shippingOrders Order[] @relation("OrderShippingAddress")
+  billingOrders  Order[] @relation("OrderBillingAddress")
+
+  @@index([userId])
+  @@index([pincode])
+}
+
+// ─────────────────────────────── Catalogue ───────────────────────────────
+
+model Category {
+  id              String     @id @default(cuid())
+  slug            String     @unique(length: 191)
+  legacyHandle    String?    @db.VarChar(191)
+  name            String     @db.VarChar(150)
+  description     String?    @db.Text
+  imageUrl        String?    @db.VarChar(512)
+  parentId        String?
+  parent          Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Category[] @relation("CategoryTree")
+  position        Int        @default(0)
+  isActive        Boolean    @default(true)
+  showInNav       Boolean    @default(false)
+  metaTitle       String?    @db.VarChar(255)
+  metaDescription String?    @db.VarChar(500)
+  deletedAt       DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  products ProductCategory[]
+  coupons  Coupon[]          @relation("CouponCategories")
+
+  @@index([parentId])
+  @@index([isActive, position])
+  @@index([legacyHandle])
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model Product {
+  id             String        @id @default(cuid())
+  slug           String        @unique(length: 191)
+  /// Original Shopify handle, kept so legacy URLs can 301 to the new slug.
+  legacyHandle   String?       @unique(length: 191)
+  name           String        @db.VarChar(255)
+  subtitle       String?       @db.VarChar(255)
+  description    String?       @db.Text
+  /// Structured spec rows rendered on the PDP: [{label,value}]
+  details        Json?
+  fabric         String?       @db.VarChar(150)
+  fit            String?       @db.VarChar(100)
+  /// Per-product measurement chart — a shirt and a kurta fit differently
+  /// enough that one global chart is wrong for most products. Falls back to
+  /// the brand's default chart when not set.
+  sizeChartImage String?       @db.VarChar(512)
+  vendor         String        @default("CULT") @db.VarChar(100)
+  status         ProductStatus @default(DRAFT)
+
+  /// Display price. Authoritative price lives on the variant; this is the
+  /// "from" price used for listing cards and sorting.
+  price          Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+
+  isFeatured   Boolean @default(false)
+  isNewArrival Boolean @default(false)
+  isBestSeller Boolean @default(false)
+  position     Int     @default(0)
+
+  /// Set by the importer when the source store had no description/imagery,
+  /// so the admin can surface a clear "needs attention" queue.
+  needsDescription Boolean @default(false)
+  needsImagery     Boolean @default(false)
+
+  metaTitle       String? @db.VarChar(255)
+  metaDescription String? @db.VarChar(500)
+
+  publishedAt DateTime?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  categories       ProductCategory[]
+  images           ProductImage[]
+  videos           ProductVideo[]
+  variants         ProductVariant[]
+  reviews          Review[]
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
+  wishlistItems    WishlistItem[]
+  events           CustomerEvent[]
+  whatsappMessages WhatsAppMessageLog[]
+  coupons          Coupon[]             @relation("CouponProducts")
+
+  @@index([status, publishedAt])
+  @@index([deletedAt])
+  @@index([isFeatured])
+  @@index([isNewArrival])
+  @@index([isBestSeller])
+  @@index([price])
+  @@fulltext([name, description])
+}
+
+/// Explicit join so a product can sit in several collections (as on the live store).
+model ProductCategory {
+  productId  String
+  categoryId String
+  position   Int      @default(0)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+}
+
+model ProductImage {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Path served from Hostinger disk, e.g. /uploads/products/xyz.webp
+  url           String   @db.VarChar(512)
+  /// Small blurred preview used as the Next/Image blurDataURL.
+  blurDataUrl   String?  @db.Text
+  alt           String?  @db.VarChar(255)
+  width         Int?
+  height        Int?
+  position      Int      @default(0)
+  /// True when the asset came from the source store's AI-generated files.
+  aiGenerated   Boolean  @default(false)
+  /// True when no asset could be fetched and the admin must upload one.
+  isPlaceholder Boolean  @default(false)
+  colorId       String?
+  color         Color?   @relation(fields: [colorId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([productId, position])
+  @@index([colorId])
+}
+
+model Size {
+  id        String   @id @default(cuid())
+  code      String   @unique(length: 20)
+  label     String   @db.VarChar(50)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variants ProductVariant[]
+
+  @@index([position])
+}
+
+model Color {
+  id        String   @id @default(cuid())
+  slug      String   @unique(length: 100)
+  name      String   @db.VarChar(100)
+  /// Swatch hex for the colour filter chips.
+  hex       String   @db.VarChar(9)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variants ProductVariant[]
+  images   ProductImage[]
+
+  @@index([position])
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sizeId    String?
+  size      Size?   @relation(fields: [sizeId], references: [id], onDelete: Restrict)
+  colorId   String?
+  color     Color?  @relation(fields: [colorId], references: [id], onDelete: Restrict)
+
+  sku            String    @unique(length: 100)
+  /// Authoritative selling price — every server-side total reads this.
+  price          Decimal   @db.Decimal(10, 2)
+  compareAtPrice Decimal?  @db.Decimal(10, 2)
+  weightGrams    Int       @default(300)
+  isActive       Boolean   @default(true)
+  position       Int       @default(0)
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  inventory     Inventory?
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  wishlistItems WishlistItem[]
+
+  @@unique([productId, sizeId, colorId], name: "variant_combo")
+  @@index([productId])
+  @@index([sizeId])
+  @@index([colorId])
+}
+
+// ─────────────────────────────── Inventory ───────────────────────────────
+
+model Inventory {
+  id                String         @id @default(cuid())
+  variantId         String         @unique
+  variant           ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  /// Physical units on hand.
+  quantity          Int            @default(0)
+  /// Held for in-flight orders awaiting payment. available = quantity - reserved.
+  reserved          Int            @default(0)
+  lowStockThreshold Int            @default(3)
+  allowBackorder    Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  ledger InventoryLedger[]
+
+  @@index([quantity])
+}
+
+enum InventoryReason {
+  IMPORT
+  MANUAL_ADJUSTMENT
+  RESERVATION
+  RELEASE
+  SALE
+  CANCELLATION
+  RETURN
+  RESTOCK
+}
+
+/// Append-only inventory history. Every quantity/reserved change writes a row.
+model InventoryLedger {
+  id            String          @id @default(cuid())
+  inventoryId   String
+  inventory     Inventory       @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  reason        InventoryReason
+  /// Signed change applied to `quantity`.
+  quantityDelta Int             @default(0)
+  /// Signed change applied to `reserved`.
+  reservedDelta Int             @default(0)
+  quantityAfter Int
+  reservedAfter Int
+  orderId       String?
+  note          String?         @db.VarChar(255)
+  actorId       String?
+  createdAt     DateTime        @default(now())
+
+  @@index([inventoryId, createdAt])
+  @@index([orderId])
+}
+
+// ──────────────────────────── Cart & wishlist ────────────────────────────
+
+model Cart {
+  id         String    @id @default(cuid())
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Anonymous cart key stored in an httpOnly cookie; merged on login.
+  guestToken String?   @unique(length: 191)
+  couponId   String?
+  coupon     Coupon?   @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  items CartItem[]
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model CartItem {
+  id        String         @id @default(cuid())
+  cartId    String
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity  Int            @default(1)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([cartId, variantId])
+  @@index([productId])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items WishlistItem[]
+}
+
+model WishlistItem {
+  id         String          @id @default(cuid())
+  wishlistId String
+  wishlist   Wishlist        @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId  String?
+  variant    ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  createdAt  DateTime        @default(now())
+
+  @@unique([wishlistId, productId, variantId])
+  @@index([productId])
+}
+
+// ───────────────────────────────── Orders ────────────────────────────────
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  RETURN_REQUESTED
+  RETURNED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  PREPAID
+  COD
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PAID
+  FAILED
+  REFUND_PENDING
+  PARTIALLY_REFUNDED
+  REFUNDED
+  CANCELLED
+}
+
+model Order {
+  id          String  @id @default(cuid())
+  /// Human-facing number, e.g. CU-2026-0001.
+  orderNumber String  @unique(length: 40)
+  userId      String?
+  user        User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  /// Contact captured at checkout — kept even for guest orders.
+  email String @db.VarChar(191)
+  phone String @db.VarChar(32)
+
+  shippingAddressId String?
+  shippingAddress   Address? @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
+  billingAddressId  String?
+  billingAddress    Address? @relation("OrderBillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
+  /// Frozen copy of the address as it was at purchase time.
+  addressSnapshot   Json?
+
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @default(PREPAID)
+
+  /// The cart this order was built from, if any — null for a "Buy now"
+  /// purchase, which never touches the bag. No FK: carts are pruned by
+  /// expiry independently of the orders built from them, and this is only
+  /// ever read back to find the right cart to empty once payment settles.
+  sourceCartId String? @db.VarChar(191)
+
+  // All monetary fields are server-computed. Frontend values are never trusted.
+  subtotal      Decimal @db.Decimal(10, 2)
+  discountTotal Decimal @default(0) @db.Decimal(10, 2)
+  shippingTotal Decimal @default(0) @db.Decimal(10, 2)
+  handlingTotal Decimal @default(0) @db.Decimal(10, 2)
+  codFee        Decimal @default(0) @db.Decimal(10, 2)
+  taxTotal      Decimal @default(0) @db.Decimal(10, 2)
+  grandTotal    Decimal @db.Decimal(10, 2)
+  currency      String  @default("INR") @db.VarChar(3)
+
+  couponId   String?
+  coupon     Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode String? @db.VarChar(64)
+
+  customerNote String? @db.Text
+  adminNote    String? @db.Text
+
+  /// Client-supplied idempotency key — the unique index is what actually
+  /// prevents a double-submitted checkout from creating two orders.
+  idempotencyKey String? @unique(length: 191)
+
+  placedAt          DateTime  @default(now())
+  confirmedAt       DateTime?
+  cancelledAt       DateTime?
+  cancelReason      String?   @db.VarChar(255)
+  deliveredAt       DateTime?
+  returnRequestedAt DateTime?
+  returnReason      String?   @db.VarChar(255)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  items        OrderItem[]
+  payments     Payment[]
+  shipments    Shipment[]
+  events       OrderEvent[]
+  couponUsages CouponUsage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([placedAt])
+  @@index([email])
+}
+
+model OrderItem {
+  id        String          @id @default(cuid())
+  orderId   String
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  /// Snapshot — the order must stay readable if the product is later renamed.
+  productName  String  @db.VarChar(255)
+  variantLabel String? @db.VarChar(150)
+  sku          String  @db.VarChar(100)
+  imageUrl     String? @db.VarChar(512)
+
+  unitPrice      Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  quantity       Int
+  /// Coupon amount apportioned to this line.
+  discount       Decimal  @default(0) @db.Decimal(10, 2)
+  lineTotal      Decimal  @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+/// Immutable audit trail of order status transitions, shown on the tracking page.
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String   @db.VarChar(64)
+  message   String?  @db.VarChar(500)
+  source    String   @default("system") @db.VarChar(32)
+  actorId   String?
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  orderId        String
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider       String        @default("cashfree") @db.VarChar(50)
+  method         PaymentMethod @default(PREPAID)
+  status         PaymentStatus @default(PENDING)
+  amount         Decimal       @db.Decimal(10, 2)
+  refundedAmount Decimal       @default(0) @db.Decimal(10, 2)
+  currency       String        @default("INR") @db.VarChar(3)
+
+  /// Provider identifiers only. No card data is ever stored.
+  providerOrderId   String? @db.VarChar(191)
+  providerPaymentId String? @unique(length: 191)
+  providerRefundId  String? @db.VarChar(191)
+  /// Raw webhook/verification payload for reconciliation.
+  providerPayload   Json?
+  failureReason     String? @db.VarChar(500)
+
+  paidAt     DateTime?
+  refundedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+enum ShipmentStatus {
+  PENDING
+  AWB_ASSIGNED
+  PICKUP_SCHEDULED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  RTO
+  CANCELLED
+  FAILED
+}
+
+model Shipment {
+  id       String         @id @default(cuid())
+  orderId  String
+  order    Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider String         @default("shiprocket") @db.VarChar(50)
+  status   ShipmentStatus @default(PENDING)
+
+  providerOrderId    String? @db.VarChar(100)
+  providerShipmentId String? @db.VarChar(100)
+  awbCode            String? @db.VarChar(100)
+  courierName        String? @db.VarChar(150)
+  trackingUrl        String? @db.VarChar(512)
+  labelUrl           String? @db.VarChar(512)
+  manifestUrl        String? @db.VarChar(512)
+  invoiceUrl         String? @db.VarChar(512)
+
+  expectedDelivery DateTime?
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
+  lastSyncedAt     DateTime?
+  /// Latest raw tracking payload from the provider.
+  trackingPayload  Json?
+  errorMessage     String?   @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([awbCode])
+  @@index([status])
+}
+
+// ─────────────────────────────── Marketing ───────────────────────────────
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model Coupon {
+  id              String       @id @default(cuid())
+  code            String       @unique(length: 64)
+  description     String?      @db.VarChar(255)
+  type            DiscountType
+  /// Percent (0-100) when PERCENTAGE, rupee amount when FIXED.
+  value           Decimal      @db.Decimal(10, 2)
+  minOrderAmount  Decimal?     @db.Decimal(10, 2)
+  /// Caps the rupee discount on percentage coupons.
+  maxDiscount     Decimal?     @db.Decimal(10, 2)
+  /// Total redemptions allowed across all customers.
+  usageLimit      Int?
+  /// Redemptions allowed per customer.
+  perUserLimit    Int?         @default(1)
+  usedCount       Int          @default(0)
+  startsAt        DateTime?
+  expiresAt       DateTime?
+  isActive        Boolean      @default(true)
+  /// When true the coupon only applies to the linked products/categories.
+  appliesToSubset Boolean      @default(false)
+  freeShipping    Boolean      @default(false)
+  firstOrderOnly  Boolean      @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  products   Product[]     @relation("CouponProducts")
+  categories Category[]    @relation("CouponCategories")
+  customers  User[]        @relation("CouponCustomers")
+  usages     CouponUsage[]
+  carts      Cart[]
+  orders     Order[]
+
+  @@index([isActive, expiresAt])
+}
+
+model CouponUsage {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  @@unique([couponId, orderId])
+  @@index([userId])
+}
+
+enum BannerPlacement {
+  HOME_HERO
+  HOME_SPLIT
+  HOME_PROMO
+  CATEGORY_TOP
+  ANNOUNCEMENT
+}
+
+model Banner {
+  id           String          @id @default(cuid())
+  title        String          @db.VarChar(255)
+  subtitle     String?         @db.VarChar(255)
+  eyebrow      String?         @db.VarChar(120)
+  placement    BannerPlacement @default(HOME_HERO)
+  /// Separate art per breakpoint, as required.
+  desktopImage String?         @db.VarChar(512)
+  mobileImage  String?         @db.VarChar(512)
+  /// Hero is architected for a later video swap; empty here by design.
+  videoUrl     String?         @db.VarChar(512)
+  ctaLabel     String?         @db.VarChar(100)
+  ctaHref      String?         @db.VarChar(512)
+  /// Optional overlay tint, e.g. rgba(26,26,26,.35)
+  overlay      String?         @db.VarChar(64)
+  position     Int             @default(0)
+  isActive     Boolean         @default(true)
+  startsAt     DateTime?
+  endsAt       DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([placement, isActive, position])
+}
+
+model Review {
+  id         String        @id @default(cuid())
+  productId  String
+  product    Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName String        @db.VarChar(150)
+  rating     Int
+  title      String?       @db.VarChar(255)
+  body       String?       @db.Text
+  /// Only true when the reviewer has a DELIVERED order containing this product.
+  isVerified Boolean       @default(false)
+  isApproved Boolean       @default(false)
+  /// Reviews the admin entered on a customer's behalf — collected over
+  /// WhatsApp, Instagram or in person — rather than written on the site.
+  isCurated  Boolean       @default(false)
+  media      ReviewMedia[]
+  deletedAt  DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([productId, isApproved])
+  @@index([userId])
+}
+
+/// Whether a piece of review media is a still or a clip.
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+/**
+ * A product clip — a try-on, a drape, a texture close-up.
+ * Kept apart from ProductImage rather than folded into it: a video has no
+ * responsive derivatives, no blur placeholder and no sharp pipeline behind it,
+ * so sharing a table would mean a column set where half the fields are always
+ * null and every read has to branch on a kind flag.
+ */
+model ProductVideo {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Path served from Hostinger disk, e.g. /uploads/videos/xyz.mp4
+  url       String   @db.VarChar(512)
+  /// Optional still shown before playback; falls back to the first frame.
+  posterUrl String?  @db.VarChar(512)
+  alt       String?  @db.VarChar(255)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId, position])
+}
+
+/// A photo or clip attached to a review.
+model ReviewMedia {
+  id        String    @id @default(cuid())
+  reviewId  String
+  review    Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  kind      MediaKind
+  url       String    @db.VarChar(512)
+  posterUrl String?   @db.VarChar(512)
+  position  Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([reviewId, position])
+}
+
+// ──────────────────────────────── System ─────────────────────────────────
+
+/// Typed key/value store for commerce rules the admin can edit
+/// (shipping fee, free-shipping threshold, COD fee, handling fee…).
+model Setting {
+  key       String   @id @db.VarChar(100)
+  value     String   @db.Text
+  type      String   @default("string") @db.VarChar(20)
+  group     String   @default("general") @db.VarChar(50)
+  label     String?  @db.VarChar(255)
+  updatedAt DateTime @updatedAt
+
+  @@index([group])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String   @db.VarChar(100)
+  entityType String   @db.VarChar(64)
+  entityId   String?  @db.VarChar(191)
+  /// { before, after } diff for the change.
+  changes    Json?
+  ip         String?  @db.VarChar(64)
+  userAgent  String?  @db.VarChar(255)
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+/// A checkout the customer has started but not paid for.
+///
+/// Express checkout needs an id to open a gateway session against, but
+/// creating the real Order to get one meant an abandoned payment left an
+/// order behind and stock reserved against it. This holds everything needed
+/// to build that order *later*, so nothing exists — no order, no reservation
+/// — until the payment actually settles. An intent nobody pays for is inert
+/// and simply ages out.
+model CheckoutIntent {
+  id             String   @id @default(cuid())
+  /// The id handed to the payment gateway; how a webhook finds its way back.
+  reference      String   @unique(length: 191)
+  /// Client-generated, so a double-tapped button reuses this intent.
+  idempotencyKey String   @unique(length: 191)
+  userId         String?
+  email          String   @db.VarChar(191)
+  phone          String   @db.VarChar(32)
+  /// Snapshot of what is being bought: [{ variantId, quantity }]. Taken at
+  /// session time so a later cart edit cannot change what was paid for.
+  lines          Json
+  couponCode     String?  @db.VarChar(64)
+  /// The bag this came from, so it can be emptied once payment settles. Null
+  /// for "buy now", which never touches the bag.
+  cartId         String?  @db.VarChar(191)
+  /// What the gateway was told to charge, for reconciliation.
+  amountPaise    Int
+  /// Explicit, optional WhatsApp marketing consent captured before opening
+  /// the payment sheet. Guest tokens link it to pre-checkout browsing events.
+  whatsappOptIn  Boolean  @default(false)
+  guestTokens    Json?
+  /// Set once this intent has produced a real order; makes settling idempotent.
+  orderId        String?  @unique(length: 191)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/// One turn of an admin's conversation with the AI Copilot. Kept per-admin so
+/// chat history stays private to whoever asked — never shared across staff.
+model AiChatMessage {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  role      String   @db.VarChar(10)
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+}
+
+/// Records every provider webhook so replays are idempotent and auditable.
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String    @db.VarChar(50)
+  eventType   String    @db.VarChar(100)
+  /// Provider's own event id — the unique index makes replays no-ops.
+  externalId  String?   @unique(length: 191)
+  payload     Json
+  signatureOk Boolean   @default(false)
+  processedAt DateTime?
+  error       String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  @@index([provider, eventType])
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique(length: 191)
+  isActive  Boolean  @default(true)
+  source    String?  @db.VarChar(64)
+  createdAt DateTime @default(now())
+}
+
+model SearchQuery {
+  id        String   @id @default(cuid())
+  term      String   @db.VarChar(191)
+  results   Int      @default(0)
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([term])
+  @@index([createdAt])
+}
+
+/// Editorial pages (About, Contact, policies). Content is imported from the
+/// live site rather than written here — legal copy must never be invented.
+model Page {
+  id              String    @id @default(cuid())
+  slug            String    @unique(length: 191)
+  title           String    @db.VarChar(255)
+  /// Sanitised HTML from the source page.
+  content         String?   @db.LongText
+  metaTitle       String?   @db.VarChar(255)
+  metaDescription String?   @db.VarChar(500)
+  isPublished     Boolean   @default(true)
+  showInFooter    Boolean   @default(false)
+  position        Int       @default(0)
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([isPublished])
+}
+
+// ─────────────────────────── Homepage editorial ───────────────────────────
+
+enum SectionTextAlign {
+  CENTER
+  BOTTOM_LEFT
+  BOTTOM_CENTER
+  BOTTOM_RIGHT
+  TOP_LEFT
+}
+
+enum SectionTheme {
+  LIGHT // light text, for darker photography
+  DARK // dark text, for bright photography
+}
+
+enum SectionTextMode {
+  /// The artwork already carries its wording. Nothing is drawn over the image;
+  /// the heading and CTA are still emitted for screen readers and crawlers.
+  IMAGE
+  /// Title, subtitle and CTA are rendered over the photograph.
+  OVERLAY
+}
+
+/// A full-width editorial band on the homepage.
+///
+/// Everything an editor needs — artwork, copy, link, order, focal point,
+/// overlay strength and alignment — lives here, so changing the homepage never
+/// requires a code change or a deploy.
+model HomepageSection {
+  id  String @id @default(cuid())
+  /// Stable identifier used by the seed and by code that needs a known section.
+  key String @unique(length: 100)
+
+  title    String  @db.VarChar(150)
+  subtitle String? @db.VarChar(255)
+  ctaLabel String? @db.VarChar(60)
+  /// Where the whole band links to. Must be a real internal route.
+  href     String  @db.VarChar(512)
+
+  /// 16:9 landscape artwork.
+  desktopImage String? @db.VarChar(512)
+  /// 9:16 portrait artwork. Falls back to the desktop image when absent.
+  mobileImage  String? @db.VarChar(512)
+  /// Optional background video; the still image becomes the poster frame.
+  videoUrl     String? @db.VarChar(512)
+
+  /// Alt text. Written by the editor because only they can see the photograph.
+  imageAlt String? @db.VarChar(255)
+
+  /// CSS object-position, e.g. "50% 35%" — keeps faces out of the crop.
+  focalDesktop String @default("50% 50%") @db.VarChar(32)
+  focalMobile  String @default("50% 35%") @db.VarChar(32)
+
+  textMode        SectionTextMode  @default(IMAGE)
+  textAlign       SectionTextAlign @default(BOTTOM_LEFT)
+  theme           SectionTheme     @default(LIGHT)
+  /// Gradient strength at the foot of the image, 0–80 (percent black).
+  overlayStrength Int              @default(35)
+
+  /// Renders a compact product carousel beneath the band.
+  showProductRail Boolean @default(false)
+  /// Which products the rail pulls: a category slug or new/bestseller/sale/featured.
+  railSource      String? @db.VarChar(100)
+
+  /// Eager-loads the artwork. Should be true for the first band only.
+  priority Boolean @default(false)
+  isActive Boolean @default(true)
+  position Int     @default(0)
+
+  /// Category has no stock yet. The band shows a "Coming Soon" badge and its
+  /// link is disabled rather than sending shoppers to an empty category page.
+  comingSoon Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, position])
+}
+
+// ───────────────────────── Behavioural marketing ─────────────────────────
+
+enum CustomerEventType {
+  PRODUCT_VIEW
+  ADD_TO_CART
+  CHECKOUT_STARTED
+  PURCHASE
+}
+
+/// What a shopper did, recorded so a follow-up can be decided later.
+///
+/// Deliberately generic: the automations that read it today are the
+/// product-view and abandoned-cart reminders, but the shape carries any
+/// later event without another table.
+///
+/// An anonymous visitor is identified by the same `guestToken` the cart
+/// already keeps in its httpOnly cookie, rather than a second notion of a
+/// session. They can never be messaged — there is no phone number until
+/// they have an account — but the event still counts once they do.
+model CustomerEvent {
+  id          String            @id @default(cuid())
+  userId      String?
+  user        User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestToken  String?           @db.VarChar(191)
+  eventType   CustomerEventType
+  productId   String?
+  product     Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartId      String?           @db.VarChar(191)
+  metadata    Json?
+  /// Set once an automation has considered this event, so the worker never
+  /// looks at it twice however often it runs.
+  processedAt DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([eventType, processedAt, createdAt])
+  @@index([userId, eventType, productId, createdAt])
+  @@index([createdAt])
+}
+
+/// Explicit WhatsApp marketing permission collected from a guest at checkout.
+/// The browser token links that permission to product and cart events recorded
+/// before the shopper has an account.
+model GuestWhatsAppConsent {
+  id          String   @id @default(cuid())
+  guestToken  String   @unique(length: 191) @db.VarChar(191)
+  phone       String   @db.VarChar(32)
+  consentedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([phone])
+}
+
+enum WhatsAppMessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED
+}
+
+/// Every WhatsApp message this app decided to send, and what became of it.
+///
+/// It is also the duplicate guard: before sending, the automation looks for a
+/// recent row with the same customer, automation and product. Rows are
+/// written even when a send is skipped or fails, so the reason is auditable.
+model WhatsAppMessageLog {
+  id            String                @id @default(cuid())
+  userId        String?
+  user          User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Stored as sent to Meta (digits, country code, no +).
+  phone         String                @db.VarChar(32)
+  /// Which automation produced it, e.g. "product_view" or "abandoned_cart".
+  automation    String                @db.VarChar(64)
+  productId     String?
+  product       Product?              @relation(fields: [productId], references: [id], onDelete: SetNull)
+  cartId        String?               @db.VarChar(191)
+  templateName  String                @db.VarChar(128)
+  /// Meta's own message id, which its status webhooks refer back to.
+  metaMessageId String?               @unique(length: 191)
+  status        WhatsAppMessageStatus @default(PENDING)
+  errorMessage  String?               @db.Text
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  failedAt      DateTime?
+  createdAt     DateTime              @default(now())
+
+  @@index([userId, automation, productId, createdAt])
+  @@index([status, createdAt])
+  @@index([createdAt])
+}
