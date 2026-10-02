@@ -33,6 +33,12 @@ Set `DATABASE_URL`, a new `NEXTAUTH_SECRET`, the final `NEXT_PUBLIC_SITE_URL`,
 and `NEXT_PUBLIC_SITE_NAME=CULT` for the target environment. Do not reuse the
 local database or development secrets in production.
 
+For Hostinger Git deployment, choose **Node.js Web App** with Node.js 22, set
+the build command to `npm run build` and the start command to `npm start`.
+Set `UPLOAD_DIR` to a writable absolute path outside the app's `nodejs` build
+directory so uploaded media survives redeploys. See the full
+[Hostinger deployment guide](docs/DEPLOYMENT.md) before connecting the repository.
+
 ### Cashfree One Click Checkout
 
 The local `.env` selects Cashfree sandbox. Configure sandbox `PAYMENT_API_KEY`

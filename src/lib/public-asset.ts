@@ -21,19 +21,27 @@ export function publicAsset(src: string | null | undefined): string | null {
   if (/^https?:\/\//i.test(src)) return src;
   if (!src.startsWith('/')) return null;
 
-  const cached = cache.get(src);
-  if (cached !== undefined) return cached ? src : null;
+  const uploadPath = process.env.NEXT_PUBLIC_UPLOAD_PATH || '/uploads';
+  const isUpload = src.startsWith(`${uploadPath}/`);
+  // Uploaded media can appear after the page is first rendered.
+  if (!isUpload) {
+    const cached = cache.get(src);
+    if (cached !== undefined) return cached ? src : null;
+  }
 
   // Refuse traversal before touching the filesystem.
-  const publicDir = path.join(process.cwd(), 'public');
-  const resolved = path.resolve(publicDir, `.${src}`);
-  if (!resolved.startsWith(publicDir + path.sep)) {
-    cache.set(src, false);
+  const root = isUpload
+    ? path.resolve(process.cwd(), process.env.UPLOAD_DIR || './public/uploads')
+    : path.join(process.cwd(), 'public');
+  const relative = isUpload ? src.slice(uploadPath.length + 1) : src.slice(1);
+  const resolved = path.resolve(root, relative);
+  if (!resolved.startsWith(root + path.sep)) {
+    if (!isUpload) cache.set(src, false);
     return null;
   }
 
   const exists = existsSync(resolved);
-  cache.set(src, exists);
+  if (!isUpload) cache.set(src, exists);
   return exists ? src : null;
 }
 

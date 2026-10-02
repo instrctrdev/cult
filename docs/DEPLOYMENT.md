@@ -8,9 +8,9 @@ Customer → your-cult-domain.example (Hostinger)
               ├── Next.js (SSR + static)
               ├── API route handlers
               ├── MySQL (Hostinger)
-              └── public/uploads  ← product & banner media
+              └── UPLOAD_DIR outside nodejs  ← product & banner media
                         ↓
-                  Fastrr (payments)
+                  Cashfree (payments)
 ```
 
 ---
@@ -45,8 +45,9 @@ If the password contains `@ : / ?` or `#`, URL-encode it (`@` → `%40`).
 
 ## 3. Environment variables
 
-Set these in hPanel → **Node.js → Environment variables** (preferred) or in a `.env`
-file at the app root. **Never commit `.env`.**
+Set these in the **Environment variables** step of Hostinger's Node.js Web App
+deployment. Hostinger reads variable names from the repository, but you must
+provide their values. **Never commit `.env`.**
 
 ```bash
 DATABASE_URL="mysql://user:pass@localhost:3306/cult"
@@ -69,7 +70,8 @@ NEXT_PUBLIC_CASHFREE_MODE="production"
 
 SHIPPING_PROVIDER="manual"
 
-UPLOAD_DIR="./public/uploads"
+# Use an absolute, writable path outside Hostinger's replaceable nodejs build directory.
+UPLOAD_DIR="/home/YOUR_USER/domains/YOUR_DOMAIN/cult-uploads"
 NEXT_PUBLIC_UPLOAD_PATH="/uploads"
 MAX_UPLOAD_MB="8"
 ```
@@ -84,25 +86,28 @@ deploy rather than a checkout.
 
 | Setting | Value |
 |---|---|
-| Install command | `npm ci` |
+| Install command | `npm ci --include=dev` |
 | Build command | `npm run build` |
 | Start command | `npm start` |
 | Application root | repository root |
 | Application URL | `https://your-cult-domain.example` |
 
-`npm run build` runs `prisma generate` first, so the client always matches the schema.
+`npm run build` applies committed database migrations and generates the Prisma client
+before compiling the app. The Hostinger database must already exist and
+`DATABASE_URL` must be available during the build.
 
 `npm start` binds `$PORT`, which Hostinger injects — do not hard-code a port.
 
-`next.config.mjs` sets `output: 'standalone'`; the build copies static assets into
-the standalone bundle and `npm start` runs its generated `server.js`.
+`next.config.mjs` sets `output: 'standalone'`; the build copies Next's static assets
+and the repository's `public/` images into the standalone bundle. `npm start` runs
+its generated `server.js`. If Hostinger asks for these fields manually, use
+`.next/standalone` as the output directory and `server.js` as the entry file.
 
 ### Deploy sequence
 
 ```bash
-npm ci
-npm run db:deploy      # apply migrations (never `db:migrate` in production)
-npm run build
+npm ci --include=dev
+npm run build          # includes `prisma migrate deploy`
 npm start
 ```
 
@@ -110,8 +115,9 @@ First deploy only:
 
 ```bash
 npm run db:seed                       # sizes, colours, categories, settings, banners
-npm run import:shopify                # real catalogue, images, policy pages
 npm run admin:create -- --email you@your-cult-domain.example --password '…' --role SUPER_ADMIN
+# Optional: set IMPORT_SOURCE_URL to your CULT Shopify storefront before importing.
+# IMPORT_SOURCE_URL=https://your-cult-store.example npm run import:shopify
 ```
 
 Then set real stock in **Admin → Inventory** — the public feed exposes availability
@@ -160,14 +166,15 @@ their product (a shirt sits at `/products/beige-shaket`).
 
 ## 7. Media storage
 
-Product and banner images are written to `public/uploads` on the Hostinger disk and
-served directly, with `Cache-Control: public, max-age=31536000, immutable`.
+Product and banner images are written to `UPLOAD_DIR` on the Hostinger disk and
+served by `/uploads/...`, with `Cache-Control: public, max-age=31536000, immutable`.
 
-- `public/uploads` is **gitignored** — it is data, not code.
-- Ensure your deploy process does **not** wipe it between releases. If your
-  deployment replaces the whole directory, move uploads outside the release
-  directory and symlink `public/uploads` to it.
-- Include `public/uploads` in backups (§9).
+- Set `UPLOAD_DIR` to an absolute directory outside `/nodejs` and `/public_html`,
+  for example `/home/YOUR_USER/domains/YOUR_DOMAIN/cult-uploads`. Create it with
+  SSH and ensure the Node.js app can write to it. Hostinger replaces the app
+  build directory on redeploy; a relative `./public/uploads` would lose media.
+- Keep `NEXT_PUBLIC_UPLOAD_PATH=/uploads`; this is the URL prefix, not a disk path.
+- Include the `UPLOAD_DIR` directory in backups (§9).
 
 Each upload produces a WebP original (≤2000px) plus 400/800/1200/1600 derivatives.
 Budget roughly 1 MB per product across all sizes.
@@ -243,7 +250,7 @@ gunzip < cult-2026-08-19-1200.sql.gz | mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAM
 ### Media
 
 ```bash
-tar czf "uploads-$(date +%F).tar.gz" public/uploads
+tar czf "uploads-$(date +%F).tar.gz" -C /home/YOUR_USER/domains/YOUR_DOMAIN cult-uploads
 ```
 
 ### Suggested schedule
@@ -251,7 +258,7 @@ tar czf "uploads-$(date +%F).tar.gz" public/uploads
 | What | Frequency | Retention |
 |---|---|---|
 | Database | Daily, plus before every deploy | 30 days |
-| `public/uploads` | Weekly, plus after bulk uploads | 90 days |
+| `UPLOAD_DIR` | Weekly, plus after bulk uploads | 90 days |
 | Off-site copy | Weekly | 90 days |
 
 Keep at least one copy off the Hostinger account. **Restore-test quarterly** — an
