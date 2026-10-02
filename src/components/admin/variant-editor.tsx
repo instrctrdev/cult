@@ -32,40 +32,50 @@ export function VariantEditor({
   initial,
   sizes,
   colors,
+  onChange,
+  defaultPrice,
 }: {
-  productId: string;
+  productId: string | null;
   initial: VariantRow[];
   sizes: { id: string; code: string; label: string }[];
   colors: { id: string; name: string; hex: string }[];
+  onChange?: (rows: VariantRow[]) => void;
+  defaultPrice?: number;
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const [rows, setRows] = React.useState<VariantRow[]>(initial);
   const [saving, setSaving] = React.useState(false);
 
+  const changeRows = (next: VariantRow[]) => {
+    setRows(next);
+    onChange?.(next);
+  };
+
   const update = (index: number, patch: Partial<VariantRow>) =>
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+    changeRows(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
   const addRow = () => {
     const used = new Set(rows.map((r) => r.sizeId));
     const nextSize = sizes.find((s) => !used.has(s.id)) ?? sizes[0];
-    setRows((prev) => [
-      ...prev,
+    changeRows([
+      ...rows,
       {
         sizeId: nextSize?.id ?? null,
-        colorId: prev[0]?.colorId ?? null,
+        colorId: rows[0]?.colorId ?? null,
         sku: '',
-        price: prev[0]?.price ?? 0,
-        compareAtPrice: prev[0]?.compareAtPrice ?? null,
+        price: rows[0]?.price ?? defaultPrice ?? 0,
+        compareAtPrice: rows[0]?.compareAtPrice ?? null,
         quantity: 0,
         lowStockThreshold: 3,
-        weightGrams: prev[0]?.weightGrams ?? 300,
+        weightGrams: rows[0]?.weightGrams ?? 300,
         isActive: true,
       },
     ]);
   };
 
   const save = async () => {
+    if (!productId) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/products/${productId}/variants`, {
@@ -91,8 +101,9 @@ export function VariantEditor({
         <div>
           <h2 className="font-serif text-lg">Variants &amp; stock</h2>
           <p className="mt-0.5 text-xs text-muted">
-            Every buyable size/colour combination. Stock changes on existing variants belong on the
-            Inventory screen.
+            {productId
+              ? 'Every buyable size/colour combination. Stock changes on existing variants belong on the Inventory screen.'
+              : 'Add sizes, colours, prices and starting stock now. They will be saved with the product.'}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={addRow}>
@@ -195,7 +206,7 @@ export function VariantEditor({
                   <td className="p-2">
                     <button
                       type="button"
-                      onClick={() => setRows((prev) => prev.filter((_, idx) => idx !== i))}
+                      onClick={() => changeRows(rows.filter((_, idx) => idx !== i))}
                       aria-label="Remove variant"
                       className="grid h-8 w-8 place-items-center rounded text-faint hover:bg-surface hover:text-danger"
                     >
@@ -209,11 +220,13 @@ export function VariantEditor({
         </div>
       )}
 
-      <div className="border-t border-line p-4">
-        <Button onClick={save} loading={saving} disabled={rows.length === 0}>
-          Save variants
-        </Button>
-      </div>
+      {productId && (
+        <div className="border-t border-line p-4">
+          <Button onClick={save} loading={saving} disabled={rows.length === 0}>
+            Save variants
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

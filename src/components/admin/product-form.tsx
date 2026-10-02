@@ -40,12 +40,17 @@ export interface ProductFormData {
   variants: VariantRow[];
 }
 
+interface PendingImage {
+  key: string;
+  file: File;
+  previewUrl: string;
+}
+
 /**
  * Create / edit a product.
  *
- * Split into three independently-saved concerns: the product record, its
- * images, and its variants + stock. That means a failed image upload never
- * loses typed copy, and stock edits do not require re-saving the whole product.
+ * The new-product form collects variants and image files before the first save.
+ * Existing products keep independent image and stock controls.
  */
 export function ProductForm({
   data,
@@ -63,11 +68,18 @@ export function ProductForm({
   const isNew = data.id === null;
 
   const [images, setImages] = React.useState(data.images);
+  const [pendingImages, setPendingImages] = React.useState<PendingImage[]>([]);
+  const pendingUrls = React.useRef(new Set<string>());
+  const [draftVariants, setDraftVariants] = React.useState<VariantRow[]>(data.variants);
   const [videos, setVideos] = React.useState(data.videos);
   const [uploading, setUploading] = React.useState(false);
   const [uploadingVideo, setUploadingVideo] = React.useState(false);
   const [uploadingSizeChart, setUploadingSizeChart] = React.useState(false);
   const [selectedCategories, setSelectedCategories] = React.useState<string[]>(data.values.categoryIds ?? []);
+
+  React.useEffect(() => () => {
+    for (const url of pendingUrls.current) URL.revokeObjectURL(url);
+  }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(adminProductSchema),
@@ -78,61 +90,108 @@ export function ProductForm({
   const sizeChartImage = form.watch('sizeChartImage');
 
   const save = form.handleSubmit(async (values) => {
-    const payload = { ...values, categoryIds: selectedCategories };
+    if (isNew && values.status === 'ACTIVE' && !draftVariants.some((variant) => variant.isActive)) {
+      toast({ title: 'Add an active variant before publishing.', variant: 'error' });
+      return;
+    }
+
+    const publishAfterImages = isNew && values.status === 'ACTIVE' && pendingImages.length > 0;
+    const payload = {
+      ...values,
+      categoryIds: selectedCategories,
+      ...(isNew ? { variants: draftVariants } : {}),
+    };
     const res = await fetch(isNew ? '/api/admin/products' : `/api/admin/products/${data.id}`, {
       method: isNew ? 'POST' : 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(publishAfterImages ? { ...payload, status: 'DRAFT' } : payload),
     });
     const json = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      toast({ title: json?.error?.message ?? 'Could not save the product.', variant: 'error' });
+      const issue = json?.error?.details?.[0]?.message;
+      toast({ title: issue ?? json?.error?.message ?? 'Could not save the product.', variant: 'error' });
       return;
     }
 
-    toast({ title: isNew ? 'Product created' : 'Product saved', variant: 'success' });
-    if (isNew) router.push(`/admin/products/${json.id}`);
-    else router.refresh();
+    if (isNew) {
+      try {
+        if (pendingImages.length) {
+          setUploading(true);
+          await uploadImagesForProduct(json.id, pendingImages.map((image) => image.file));
+        }
+        if (publishAfterImages) {
+          const publish = await fetch(`/api/admin/products/${json.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...values, categoryIds: selectedCategories }),
+          });
+          const result = await publish.json().catch(() => ({}));
+          if (!publish.ok) throw new Error(result?.error?.message ?? 'Could not publish the product.');
+        }
+        toast({ title: 'Product, variants and images saved', variant: 'success' });
+      } catch (err) {
+        toast({
+          title: 'Product and variants saved. Finish setup on the edit page.',
+          description: err instanceof Error ? err.message : 'Retry the image upload or publishing there.',
+          variant: 'error',
+        });
+      } finally {
+        setUploading(false);
+        router.push(`/admin/products/${json.id}`);
+      }
+    } else {
+      toast({ title: 'Product saved', variant: 'success' });
+      router.refresh();
+    }
   });
 
+  const uploadImagesForProduct = async (productId: string, files: File[]) => {
+    for (const file of files) {
+      const body = new FormData();
+      body.append('file', file);
+      body.append('folder', 'products');
+      body.append('name', slugify(name || 'product'));
+
+      const upload = await fetch('/api/admin/media', { method: 'POST', body });
+      const stored = await upload.json().catch(() => ({}));
+      if (!upload.ok) throw new Error(stored?.error?.message ?? 'Upload failed.');
+
+      const attach = await fetch(`/api/admin/products/${productId}/images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: stored.url,
+          blurDataUrl: stored.blurDataUrl,
+          width: stored.width,
+          height: stored.height,
+          alt: name,
+        }),
+      });
+      const image = await attach.json().catch(() => ({}));
+      if (!attach.ok) throw new Error('Could not attach the image.');
+
+      setImages((prev) => [
+        ...prev.filter((i) => !i.isPlaceholder),
+        { id: image.id, url: image.url, alt: image.alt, isPlaceholder: false, aiGenerated: false },
+      ]);
+    }
+  };
+
   const uploadImages = async (files: FileList) => {
-    if (!data.id) {
-      toast({ title: 'Save the product first, then add images.', variant: 'error' });
+    if (isNew) {
+      const staged = Array.from(files).map((file) => {
+        const previewUrl = URL.createObjectURL(file);
+        pendingUrls.current.add(previewUrl);
+        return { key: crypto.randomUUID(), file, previewUrl };
+      });
+      setPendingImages((prev) => [...prev, ...staged]);
       return;
     }
     setUploading(true);
 
     try {
-      for (const file of Array.from(files)) {
-        const body = new FormData();
-        body.append('file', file);
-        body.append('folder', 'products');
-        body.append('name', slugify(name || 'product'));
-
-        const upload = await fetch('/api/admin/media', { method: 'POST', body });
-        const stored = await upload.json().catch(() => ({}));
-        if (!upload.ok) throw new Error(stored?.error?.message ?? 'Upload failed.');
-
-        const attach = await fetch(`/api/admin/products/${data.id}/images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url: stored.url,
-            blurDataUrl: stored.blurDataUrl,
-            width: stored.width,
-            height: stored.height,
-            alt: name,
-          }),
-        });
-        const image = await attach.json().catch(() => ({}));
-        if (!attach.ok) throw new Error('Could not attach the image.');
-
-        setImages((prev) => [
-          ...prev.filter((i) => !i.isPlaceholder),
-          { id: image.id, url: image.url, alt: image.alt, isPlaceholder: false, aiGenerated: false },
-        ]);
-      }
+      await uploadImagesForProduct(data.id!, Array.from(files));
       toast({ title: 'Images uploaded', variant: 'success' });
       router.refresh();
     } catch (err) {
@@ -307,7 +366,7 @@ export function ProductForm({
               Delete
             </Button>
           )}
-          <Button onClick={save} loading={form.formState.isSubmitting}>
+          <Button onClick={save} loading={form.formState.isSubmitting || uploading}>
             {isNew ? 'Create product' : 'Save changes'}
           </Button>
         </div>
@@ -409,12 +468,15 @@ export function ProductForm({
                   accept="image/jpeg,image/png,image/webp,image/avif"
                   multiple
                   className="sr-only"
-                  disabled={isNew || uploading}
-                  onChange={(e) => e.target.files && uploadImages(e.target.files)}
+                  disabled={uploading || form.formState.isSubmitting}
+                  onChange={(e) => {
+                    if (e.target.files) void uploadImages(e.target.files);
+                    e.target.value = '';
+                  }}
                 />
                 <span
                   className={`inline-flex h-9 items-center gap-2 rounded-md border border-ink/25 px-3 text-xs uppercase tracking-wide2 ${
-                    isNew || uploading ? 'opacity-50' : 'hover:border-ink'
+                    uploading || form.formState.isSubmitting ? 'opacity-50' : 'hover:border-ink'
                   }`}
                 >
                   <Upload className="h-3.5 w-3.5" aria-hidden />
@@ -424,9 +486,50 @@ export function ProductForm({
             </div>
 
             {isNew && (
-              <p className="rounded-md bg-surface p-3 text-xs text-muted">
-                Save the product first — images attach to an existing product.
+              <p className="mb-4 rounded-md bg-surface p-3 text-xs text-muted">
+                Select images now. They will upload when you create the product, in the order shown below.
               </p>
+            )}
+
+            {isNew && pendingImages.length > 0 && (
+              <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {pendingImages.map((image, i) => (
+                  <li key={image.key} className="min-w-0">
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-surface">
+                      <Image src={image.previewUrl} alt={image.file.name} fill unoptimized sizes="160px" className="object-cover" />
+                      {i === 0 && (
+                        <span className="absolute left-1.5 top-1.5 rounded bg-ink px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-bg">Main</span>
+                      )}
+                    </div>
+                    <p className="mt-1 truncate text-2xs text-muted" title={image.file.name}>{image.file.name}</p>
+                    <div className="mt-1 flex justify-center gap-1">
+                      <button type="button" disabled={i === 0} aria-label="Move image earlier"
+                        onClick={() => setPendingImages((prev) => {
+                          const next = [...prev]; [next[i - 1], next[i]] = [next[i], next[i - 1]]; return next;
+                        })}
+                        className="grid h-7 w-7 place-items-center rounded text-muted hover:bg-surface disabled:opacity-30">
+                        <ArrowUp className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                      <button type="button" disabled={i === pendingImages.length - 1} aria-label="Move image later"
+                        onClick={() => setPendingImages((prev) => {
+                          const next = [...prev]; [next[i], next[i + 1]] = [next[i + 1], next[i]]; return next;
+                        })}
+                        className="grid h-7 w-7 place-items-center rounded text-muted hover:bg-surface disabled:opacity-30">
+                        <ArrowDown className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                      <button type="button" aria-label="Remove image"
+                        onClick={() => {
+                          pendingUrls.current.delete(image.previewUrl);
+                          URL.revokeObjectURL(image.previewUrl);
+                          setPendingImages((prev) => prev.filter((item) => item.key !== image.key));
+                        }}
+                        className="grid h-7 w-7 place-items-center rounded text-muted hover:bg-surface hover:text-danger">
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
 
             {!isNew && images.length === 0 && (
@@ -570,9 +673,14 @@ export function ProductForm({
           </section>
 
           {/* ── Variants ──────────────────────────────────────────────── */}
-          {!isNew && data.id && (
-            <VariantEditor productId={data.id} initial={data.variants} sizes={sizes} colors={colors} />
-          )}
+          <VariantEditor
+            productId={data.id}
+            initial={data.variants}
+            sizes={sizes}
+            colors={colors}
+            onChange={isNew ? setDraftVariants : undefined}
+            defaultPrice={isNew ? Number(form.watch('price')) : undefined}
+          />
 
           {/* ── SEO ───────────────────────────────────────────────────── */}
           <section className="space-y-4 rounded-lg border border-line p-5">

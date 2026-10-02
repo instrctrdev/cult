@@ -1,23 +1,41 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { z } from 'zod';
 import { Prisma, ProductStatus } from '@prisma/client';
 import { withErrorHandling, conflict } from '@/lib/errors';
 import { requirePermission } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { AuditService } from '@/services/audit.service';
-import { adminProductSchema } from '@/lib/validation';
+import { adminProductSchema, adminVariantSchema } from '@/lib/validation';
 import { slugify } from '@/lib/utils';
 import { clientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
-/** POST /api/admin/products — create a product (variants are added separately). */
+const createSchema = adminProductSchema.extend({
+  variants: z.array(adminVariantSchema.omit({ id: true })).max(60).default([]),
+}).superRefine((body, ctx) => {
+  if (body.status === 'ACTIVE' && !body.variants.some((variant) => variant.isActive)) {
+    ctx.addIssue({ code: 'custom', path: ['variants'], message: 'Add an active variant before publishing.' });
+  }
+});
+
+/** POST /api/admin/products — create the product and its starting variants together. */
 export const POST = withErrorHandling(async (req: NextRequest) => {
   const actor = await requirePermission('products.write');
-  const body = adminProductSchema.parse(await req.json());
+  const body = createSchema.parse(await req.json());
 
   const slug = body.slug || slugify(body.name);
   const clash = await prisma.product.findUnique({ where: { slug }, select: { id: true } });
   if (clash) throw conflict('A product with that URL slug already exists.');
+
+  const skus = body.variants.map((variant) => variant.sku.trim());
+  if (new Set(skus).size !== skus.length) throw conflict('Each variant needs a distinct SKU.');
+  if (skus.length) {
+    const foreignSku = await prisma.productVariant.findFirst({
+      where: { sku: { in: skus } }, select: { sku: true },
+    });
+    if (foreignSku) throw conflict(`SKU "${foreignSku.sku}" is already used by another product.`);
+  }
 
   const product = await prisma.product.create({
     data: {
@@ -40,6 +58,19 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       metaTitle: body.metaTitle ?? null,
       metaDescription: body.metaDescription ?? null,
       categories: { create: body.categoryIds.map((categoryId, i) => ({ categoryId, position: i })) },
+      variants: {
+        create: body.variants.map((variant, position) => ({
+          sizeId: variant.sizeId || null,
+          colorId: variant.colorId || null,
+          sku: variant.sku.trim(),
+          price: new Prisma.Decimal(variant.price),
+          compareAtPrice: variant.compareAtPrice ? new Prisma.Decimal(variant.compareAtPrice) : null,
+          weightGrams: variant.weightGrams,
+          isActive: variant.isActive,
+          position,
+          inventory: { create: { quantity: variant.quantity, lowStockThreshold: variant.lowStockThreshold } },
+        })),
+      },
     },
     select: { id: true, slug: true },
   });
