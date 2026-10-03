@@ -21,11 +21,14 @@ export function AdminLoginForm({ next }: { next?: string }) {
   });
 
   return (
-    <div className="grid min-h-dvh place-items-center bg-surface px-6">
-      <div className="w-full max-w-sm">
+    <div className="admin-panel admin-login grid min-h-dvh place-items-center bg-bg px-6 py-10">
+      <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <p className="font-display text-2xl font-bold tracking-luxe text-ink">CULT</p>
-          <p className="mt-1 text-2xs uppercase tracking-luxe text-muted">Admin panel</p>
+          <p className="font-display text-3xl font-bold tracking-[0.2em] text-ink">CULT</p>
+          <span className="mx-auto mt-3 block h-0.5 w-9 bg-gold" aria-hidden />
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">Control room</p>
+          <h1 className="mt-8 text-2xl font-semibold tracking-tight text-ink">Welcome back</h1>
+          <p className="mt-2 text-sm text-muted">Sign in to manage your store.</p>
         </div>
 
         <form
@@ -55,7 +58,7 @@ export function AdminLoginForm({ next }: { next?: string }) {
             router.push(next ?? '/admin/dashboard');
             router.refresh();
           })}
-          className="space-y-4 rounded-lg border border-line bg-bg p-6"
+          className="space-y-5 rounded-lg border border-line bg-white p-6 shadow-card sm:p-8"
           noValidate
         >
           {error && <p role="alert" className="rounded-md bg-danger/10 p-3 text-sm text-danger">{error}</p>}

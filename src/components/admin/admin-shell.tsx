@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Banknote, BarChart3, Boxes, Image as ImageIcon, LayoutDashboard, LayoutTemplate,
+  ArrowUpRight, Banknote, Boxes, Image as ImageIcon, LayoutDashboard, LayoutTemplate,
   LogOut, Menu, Package, Settings, ShoppingCart, Sparkles, Star, Tags, Users, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,6 +52,7 @@ export function AdminShell({
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const visible = NAV.filter((item) => can(user.role, item.permission));
+  const currentSection = visible.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.label ?? 'Admin';
 
   React.useEffect(() => setMobileOpen(false), [pathname]);
 
@@ -63,15 +64,16 @@ export function AdminShell({
 
   const sidebar = (
     <>
-      <div className="px-5 py-5">
-        <Link href="/admin/dashboard" className="font-display text-lg font-bold tracking-luxe text-ink">
+      <div className="admin-sidebar-brand px-6 pb-7 pt-8">
+        <Link href="/admin/dashboard" className="font-display text-2xl font-bold tracking-[0.2em] text-white">
           CULT
         </Link>
-        <p className="mt-0.5 text-2xs uppercase tracking-luxe text-faint">Admin</p>
+        <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/55">Control room</p>
       </div>
 
-      <nav className="flex-1 px-3" aria-label="Admin">
-        <ul className="space-y-0.5">
+      <nav className="flex-1 overflow-y-auto px-3 pb-5" aria-label="Admin">
+        <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">Workspace</p>
+        <ul className="space-y-1">
           {visible.map(({ href, label, Icon }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
@@ -80,8 +82,8 @@ export function AdminShell({
                   href={href}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors',
-                    active ? 'bg-ink text-bg' : 'text-muted hover:bg-surface hover:text-ink',
+                    'admin-nav-link flex items-center gap-3 rounded-md px-3 py-2.5 text-[13px] font-medium transition-colors',
+                    active ? 'admin-nav-active' : 'text-white/65 hover:bg-white/10 hover:text-white',
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -93,24 +95,24 @@ export function AdminShell({
         </ul>
       </nav>
 
-      <div className="border-t border-line p-3">
-        <div className="px-2 py-2">
-          <p className="truncate text-sm text-ink">{user.name}</p>
-          <p className="truncate text-2xs uppercase tracking-wide2 text-faint">
+      <div className="border-t border-white/10 p-3">
+        <div className="px-3 py-3">
+          <p className="truncate text-sm font-semibold text-white">{user.name}</p>
+          <p className="mt-1 truncate text-[10px] uppercase tracking-wide2 text-white/45">
             {user.role.replace('_', ' ')}
           </p>
         </div>
         <Link
           href="/"
-          className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted transition-colors hover:bg-surface hover:text-ink"
+          className="flex items-center gap-3 rounded-md px-3 py-2.5 text-[13px] text-white/65 transition-colors hover:bg-white/10 hover:text-white"
         >
-          <BarChart3 className="h-4 w-4" />
+          <ArrowUpRight className="h-4 w-4" />
           View store
         </Link>
         <button
           type="button"
           onClick={signOut}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted transition-colors hover:bg-surface hover:text-danger"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[13px] text-white/65 transition-colors hover:bg-white/10 hover:text-white"
         >
           <LogOut className="h-4 w-4" />
           Sign out
@@ -120,9 +122,9 @@ export function AdminShell({
   );
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="admin-panel min-h-dvh bg-bg">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-line bg-surface/40 lg:flex">
+      <aside className="admin-sidebar fixed inset-y-0 left-0 z-40 hidden w-64 flex-col lg:flex">
         {sidebar}
       </aside>
 
@@ -134,14 +136,14 @@ export function AdminShell({
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           />
-          <aside className="absolute inset-y-0 left-0 flex w-64 animate-slide-in-right flex-col border-r border-line bg-bg">
+          <aside className="admin-sidebar absolute inset-y-0 left-0 flex w-64 animate-slide-in-right flex-col">
             {sidebar}
           </aside>
         </div>
       )}
 
-      <div className="lg:pl-60">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-bg/95 px-4 backdrop-blur lg:hidden">
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur lg:hidden">
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
@@ -152,9 +154,19 @@ export function AdminShell({
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <span className="font-display text-base font-bold tracking-luxe">CULT</span>
+          <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide2 text-muted">{currentSection}</span>
         </header>
 
-        <main className="p-4 lg:p-8">{children}</main>
+        <header className="hidden h-16 items-center justify-between border-b border-line bg-white px-8 lg:flex">
+          <div className="flex items-center gap-3 text-xs font-medium">
+            <span className="text-faint">Control room</span>
+            <span className="text-gold">/</span>
+            <span className="text-ink">{currentSection}</span>
+          </div>
+          <span className="text-[10px] font-semibold uppercase tracking-wide2 text-muted">{user.role.replace('_', ' ')}</span>
+        </header>
+
+        <main id="main" className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8 xl:p-10">{children}</main>
       </div>
     </div>
   );

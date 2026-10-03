@@ -146,3 +146,69 @@
     overflow: hidden;
   }
 }
+
+/* The control room borrows CULT's ink and red while keeping data screens calm. */
+.admin-panel {
+  --bg: 247 247 245;
+  --surface: 255 255 255;
+  --sunken: 237 237 234;
+  color: rgb(var(--ink));
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+.admin-sidebar {
+  background: #101010;
+  color: white;
+}
+
+.admin-sidebar-brand::after {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 2px;
+  margin-top: 22px;
+  background: rgb(var(--gold));
+}
+
+.admin-nav-active {
+  background: rgb(var(--gold));
+  color: white;
+  box-shadow: inset 3px 0 0 rgb(255 255 255 / 0.45);
+}
+
+.admin-nav-link:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.admin-panel h1,
+.admin-panel h2,
+.admin-panel h3,
+.admin-panel h4,
+.admin-panel .font-serif {
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  letter-spacing: -0.025em;
+}
+
+.admin-panel h1 { font-weight: 700; }
+.admin-panel h2,
+.admin-panel h3 { font-weight: 600; }
+.admin-panel .figure { font-variant-numeric: lining-nums tabular-nums; }
+
+.admin-panel :where(section.rounded-lg.border-line, a.group.rounded-lg.border-line, div.overflow-x-auto.rounded-lg.border-line) {
+  background: white;
+  box-shadow: 0 2px 12px rgb(16 16 16 / 0.025);
+}
+
+.admin-panel :where(table) { font-variant-numeric: tabular-nums; }
+.admin-panel :where(thead) { background: #f3f3f1; }
+.admin-panel :where(input, select, textarea) { background-color: white; }
+.admin-panel :where(input, select, textarea):focus-visible {
+  border-color: rgb(var(--gold));
+  --tw-ring-color: rgb(var(--gold) / 0.28);
+}
+
+.admin-login {
+  background-image: linear-gradient(135deg, rgb(212 38 30 / 0.055), transparent 36%);
+}
