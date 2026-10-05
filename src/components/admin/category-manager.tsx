@@ -168,17 +168,24 @@ function CategoryForm({
   return (
     <form
       onSubmit={form.handleSubmit(async (values) => {
+        const normalizedSlug = slugify(values.slug || values.name);
         const res = await fetch(
           category ? `/api/admin/categories/${category.id}` : '/api/admin/categories',
           {
             method: category ? 'PATCH' : 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...values, parentId: values.parentId || null }),
+            body: JSON.stringify({ ...values, slug: normalizedSlug, parentId: values.parentId || null }),
           },
         );
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
-          toast({ title: json?.error?.message ?? 'Could not save.', variant: 'error' });
+          const fieldError = json?.error?.details?.[0];
+          toast({
+            title: fieldError
+              ? `${fieldError.path || 'Field'}: ${fieldError.message}`
+              : json?.error?.message ?? 'Could not save.',
+            variant: 'error',
+          });
           return;
         }
         toast({ title: category ? 'Collection updated' : 'Collection created', variant: 'success' });

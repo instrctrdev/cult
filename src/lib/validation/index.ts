@@ -210,7 +210,10 @@ export const adminVariantSchema = z.object({
 
 export const adminCategorySchema = z.object({
   name: z.string().trim().min(2).max(150),
-  slug: z.string().trim().regex(/^[a-z0-9-]+$/).max(191).optional(),
+  slug: z.preprocess(
+    (value) => typeof value === 'string' && !value.trim() ? undefined : value,
+    z.string().trim().regex(/^[a-z0-9-]+$/).max(191).optional(),
+  ),
   description: z.string().max(2000).optional().nullable(),
   parentId: cuidSchema.optional().nullable(),
   imageUrl: z.string().max(512).optional().nullable(),
