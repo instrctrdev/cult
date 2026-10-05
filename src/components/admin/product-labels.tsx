@@ -34,6 +34,15 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
   const selectedVariants = items.filter((item) => (counts[item.id] ?? 0) > 0).length;
 
   React.useEffect(() => {
+    setCounts((previous) => {
+      const next = Object.fromEntries(items.map((item) => [item.id, previous[item.id] ?? 1]));
+      const changed = Object.keys(next).length !== Object.keys(previous).length ||
+        Object.entries(next).some(([id, count]) => previous[id] !== count);
+      return changed ? next : previous;
+    });
+  }, [items]);
+
+  React.useEffect(() => {
     document.querySelectorAll<SVGSVGElement>('.product-label-barcode').forEach((node) => {
       const value = node.dataset.barcode;
       if (value) JsBarcode(node, value, { format: 'CODE128', width: 1.35, height: 38, margin: 0, displayValue: true, fontSize: 11 });
