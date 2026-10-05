@@ -32,7 +32,8 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   const reservedSkus = new Set<string>();
   const resolvedVariants = [];
   for (const variant of body.variants) {
-    const sku = variant.sku.trim() || await generateNumericSku(reservedSkus);
+    const enteredSku = variant.sku.trim();
+    const sku = /^\d{12}$/.test(enteredSku) ? enteredSku : await generateNumericSku(reservedSkus);
     reservedSkus.add(sku);
     resolvedVariants.push({ ...variant, sku });
   }
@@ -44,6 +45,9 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     });
     if (foreignSku) throw conflict(`SKU "${foreignSku.sku}" is already used by another product.`);
   }
+  const listingVariants = resolvedVariants.filter((variant) => variant.isActive);
+  const listingVariant = (listingVariants.length ? listingVariants : resolvedVariants)
+    .toSorted((a, b) => Number(a.price) - Number(b.price))[0];
 
   const product = await prisma.product.create({
     data: {
@@ -56,8 +60,8 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       fabric: body.fabric ?? null,
       fit: body.fit ?? null,
       sizeChartImage: body.sizeChartImage ?? null,
-      price: new Prisma.Decimal(body.price),
-      compareAtPrice: body.compareAtPrice ? new Prisma.Decimal(body.compareAtPrice) : null,
+      price: new Prisma.Decimal(listingVariant?.price ?? body.price),
+      compareAtPrice: listingVariant?.compareAtPrice ? new Prisma.Decimal(listingVariant.compareAtPrice) : null,
       status: body.status as ProductStatus,
       // Publishing is what makes a product visible; DRAFT stays hidden.
       publishedAt: body.status === 'ACTIVE' ? new Date() : null,

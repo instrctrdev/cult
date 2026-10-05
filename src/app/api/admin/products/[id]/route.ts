@@ -48,8 +48,6 @@ export const PATCH = withErrorHandling(async (req: NextRequest, ctx: Ctx) => {
         fabric: body.fabric ?? null,
         fit: body.fit ?? null,
         sizeChartImage: body.sizeChartImage ?? null,
-        price: new Prisma.Decimal(body.price),
-        compareAtPrice: body.compareAtPrice ? new Prisma.Decimal(body.compareAtPrice) : null,
         status: body.status as ProductStatus,
         // Keep the original publish date when re-saving an already-live product.
         publishedAt: body.status === 'ACTIVE' ? existing.publishedAt ?? new Date() : null,

@@ -29,7 +29,8 @@ export const PUT = withErrorHandling(async (req: NextRequest, ctx: Ctx) => {
   const reservedSkus = new Set<string>();
   const variants: Array<(typeof parsed.variants)[number]> = [];
   for (const variant of parsed.variants) {
-    const sku = variant.sku.trim() || await generateNumericSku(reservedSkus);
+    const enteredSku = variant.sku.trim();
+    const sku = /^\d{12}$/.test(enteredSku) ? enteredSku : await generateNumericSku(reservedSkus);
     reservedSkus.add(sku);
     variants.push({ ...variant, sku });
   }
@@ -79,6 +80,19 @@ export const PUT = withErrorHandling(async (req: NextRequest, ctx: Ctx) => {
       where: { productId: id, id: { notIn: keptIds } },
       data: { isActive: false, deletedAt: new Date() },
     });
+
+    const listingVariants = variants.filter((variant) => variant.isActive);
+    const listingVariant = (listingVariants.length ? listingVariants : variants)
+      .toSorted((a, b) => Number(a.price) - Number(b.price))[0];
+    if (listingVariant) {
+      await tx.product.update({
+        where: { id },
+        data: {
+          price: new Prisma.Decimal(listingVariant.price),
+          compareAtPrice: listingVariant.compareAtPrice ? new Prisma.Decimal(listingVariant.compareAtPrice) : null,
+        },
+      });
+    }
   });
 
   const saved = await prisma.productVariant.findMany({

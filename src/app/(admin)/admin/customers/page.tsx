@@ -59,9 +59,9 @@ export default async function CustomersPage({
               {result.data.map((customer) => (
                 <tr key={customer.id} className="transition-colors hover:bg-surface/40">
                   <td className="p-3">
-                    <span className="block text-ink">
+                    <Link href={`/admin/customers/${customer.id}`} className="block text-ink underline">
                       {[customer.firstName, customer.lastName].filter(Boolean).join(' ') || '—'}
-                    </span>
+                    </Link>
                     <span className="block break-all text-2xs text-faint">{customer.email}</span>
                   </td>
                   <td className="p-3 text-muted">{customer.phone ?? '—'}</td>

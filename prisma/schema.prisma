@@ -382,6 +382,7 @@ model OfflineSale {
   couponCode     String? @db.VarChar(64)
   couponDiscount Decimal @default(0) @db.Decimal(10, 2)
   manualDiscount Decimal @default(0) @db.Decimal(10, 2)
+  manualDiscountPercent Decimal @default(0) @db.Decimal(5, 2)
   roundOff       Decimal @default(0) @db.Decimal(10, 2)
   grandTotal     Decimal @db.Decimal(10, 2)
   couponId       String?
@@ -403,6 +404,7 @@ model OfflineSaleItem {
   productName String @db.VarChar(255)
   variantLabel String? @db.VarChar(150)
   brand      String @db.VarChar(100)
+  imageUrl   String? @db.VarChar(512)
   unitPrice  Decimal @db.Decimal(10, 2)
   mrp        Decimal @db.Decimal(10, 2)
   quantity   Int

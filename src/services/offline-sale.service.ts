@@ -10,25 +10,29 @@ export const offlineSaleInput = z.object({
   idempotencyKey: z.string().uuid(),
   items: z.array(z.object({ variantId: z.string().min(1), quantity: z.number().int().min(1).max(100) })).min(1).max(100),
   customerName: z.string().trim().max(150).optional(),
-  customerPhone: z.string().trim().max(32).optional(),
+  customerPhone: z.string().trim().max(32).default(''),
   paymentMethod: z.enum(['CASH', 'CARD']),
   couponCode: z.string().trim().max(64).optional(),
-  manualDiscountPaise: z.number().int().min(0).max(100000000).default(0),
+  manualDiscountPercent: z.number().min(0).max(100).default(0),
   expectedGrandTotalPaise: z.number().int().min(0).optional(),
 });
 
 export type OfflineSaleInput = z.infer<typeof offlineSaleInput>;
 
-function normalizedPhone(value?: string) {
-  if (!value?.trim()) return null;
+function normalizedPhone(value: string) {
+  if (!value.trim()) throw badRequest('Customer phone is required.');
   const digits = value.replace(/\D/g, '');
   const local = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
   if (!/^[6-9]\d{9}$/.test(local)) throw badRequest('Enter a valid 10 digit customer phone number.');
   return local;
 }
 
+function percentageDiscount(amountPaise: number, percent: number) {
+  return Math.round(amountPaise * percent / 100);
+}
+
 export async function quoteOfflineSale(input: OfflineSaleInput) {
-  const phone = normalizedPhone(input.customerPhone);
+  const phone = input.customerPhone.trim() ? normalizedPhone(input.customerPhone) : null;
   const quantities = new Map<string, number>();
   for (const item of input.items) quantities.set(item.variantId, (quantities.get(item.variantId) ?? 0) + item.quantity);
   if ([...quantities.values()].some((n) => n > 100)) throw badRequest('Maximum quantity per item is 100.');
@@ -77,10 +81,10 @@ export async function quoteOfflineSale(input: OfflineSaleInput) {
     couponDiscountPaise = Math.max(0, Math.min(eligiblePaise, couponDiscountPaise));
     if (!couponDiscountPaise) throw new AppError('COUPON_INVALID', 'This coupon does not discount these items.');
   }
-  if (input.manualDiscountPaise > subtotalPaise - couponDiscountPaise) throw badRequest('Discount exceeds the sale total.');
-  const unroundedPaise = subtotalPaise - couponDiscountPaise - input.manualDiscountPaise;
+  const manualDiscountPaise = percentageDiscount(subtotalPaise - couponDiscountPaise, input.manualDiscountPercent);
+  const unroundedPaise = subtotalPaise - couponDiscountPaise - manualDiscountPaise;
   const grandTotalPaise = Math.round(unroundedPaise / 100) * 100;
-  return { subtotalPaise, couponDiscountPaise, manualDiscountPaise: input.manualDiscountPaise,
+  return { subtotalPaise, couponDiscountPaise, manualDiscountPercent: input.manualDiscountPercent, manualDiscountPaise,
     roundOffPaise: grandTotalPaise - unroundedPaise, grandTotalPaise };
 }
 
@@ -97,7 +101,7 @@ export async function createOfflineSale(input: OfflineSaleInput, cashierId: stri
     return await prisma.$transaction(async (tx) => {
       const variants = await tx.productVariant.findMany({
         where: { id: { in: [...quantities.keys()] }, isActive: true, deletedAt: null, product: { deletedAt: null } },
-        include: { product: { include: { categories: { select: { categoryId: true } } } }, size: true, color: true, inventory: true },
+        include: { product: { include: { categories: { select: { categoryId: true } }, images: { orderBy: { position: 'asc' }, take: 1 } } }, size: true, color: true, inventory: true },
       });
       if (variants.length !== quantities.size) throw badRequest('An item is unavailable. Remove it and scan again.');
       const lines = variants.map((v) => {
@@ -124,7 +128,6 @@ export async function createOfflineSale(input: OfflineSaleInput, cashierId: stri
         }
         await tx.$queryRaw`SELECT id FROM Coupon WHERE id = ${coupon.id} FOR UPDATE`;
         if (coupon.perUserLimit !== null) {
-          if (!phone) throw new AppError('COUPON_INVALID', 'Enter the customer phone to use this coupon.');
           const user = await tx.user.findUnique({ where: { phone }, select: { id: true } });
           const walkInUses = await tx.offlineSale.count({ where: { couponId: coupon.id, customerPhone: phone } });
           const onlineUses = user ? await tx.couponUsage.count({ where: { couponId: coupon.id, userId: user.id } }) : 0;
@@ -152,11 +155,11 @@ export async function createOfflineSale(input: OfflineSaleInput, cashierId: stri
         couponId = coupon.id;
         couponCode = coupon.code;
       }
-      if (input.manualDiscountPaise > subtotalPaise - couponDiscountPaise) throw badRequest('Discount exceeds the sale total.');
-      const unroundedPaise = subtotalPaise - couponDiscountPaise - input.manualDiscountPaise;
+      const manualDiscountPaise = percentageDiscount(subtotalPaise - couponDiscountPaise, input.manualDiscountPercent);
+      const unroundedPaise = subtotalPaise - couponDiscountPaise - manualDiscountPaise;
       const grandPaise = Math.round(unroundedPaise / 100) * 100;
       if (input.expectedGrandTotalPaise === undefined || input.expectedGrandTotalPaise !== grandPaise) {
-        throw new AppError('CONFLICT', 'The total changed. Calculate the total again before accepting payment.');
+        throw new AppError('CONFLICT', 'The total changed. Review the updated total before accepting payment.');
       }
 
       const sale = await tx.offlineSale.create({
@@ -167,7 +170,8 @@ export async function createOfflineSale(input: OfflineSaleInput, cashierId: stri
           customerPhone: phone,
           paymentMethod: input.paymentMethod,
           subtotal: toDecimal(subtotalPaise), couponId, couponCode,
-          couponDiscount: toDecimal(couponDiscountPaise), manualDiscount: toDecimal(input.manualDiscountPaise),
+          couponDiscount: toDecimal(couponDiscountPaise), manualDiscount: toDecimal(manualDiscountPaise),
+          manualDiscountPercent: new Prisma.Decimal(input.manualDiscountPercent),
           roundOff: toDecimal(grandPaise - unroundedPaise), grandTotal: toDecimal(grandPaise), cashierId,
         },
       });
@@ -189,7 +193,7 @@ export async function createOfflineSale(input: OfflineSaleInput, cashierId: stri
         await tx.offlineSaleItem.create({ data: {
           saleId: sale.id, variantId: v.id, sku: v.sku, productName: v.product.name,
           variantLabel: [v.size?.label, v.color?.name].filter(Boolean).join(' / ') || null,
-          brand: v.product.vendor, unitPrice: v.price,
+          brand: v.product.vendor, imageUrl: v.product.images[0]?.url ?? null, unitPrice: v.price,
           mrp: v.compareAtPrice && v.compareAtPrice.greaterThan(v.price) ? v.compareAtPrice : v.price,
           quantity: line.quantity, lineTotal: toDecimal(line.linePaise),
         } });

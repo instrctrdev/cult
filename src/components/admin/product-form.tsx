@@ -716,7 +716,7 @@ export function ProductForm({
             sizes={sizes}
             colors={colors}
             onChange={isNew ? setDraftVariants : undefined}
-            defaultPrice={isNew ? Number(form.watch('price')) : undefined}
+            defaultPrice={0}
           />
 
           {/* ── SEO ───────────────────────────────────────────────────── */}
@@ -760,19 +760,6 @@ export function ProductForm({
                 </label>
               ))}
             </fieldset>
-          </section>
-
-          <section className="space-y-4 rounded-lg border border-line p-5">
-            <h2 className="font-serif text-lg">Pricing</h2>
-            <p className="text-xs text-muted">
-              This is the “from” price used on listing cards. Each variant carries the price actually charged.
-            </p>
-            <Field label="Price (Rs.)" htmlFor="p-price" required error={form.formState.errors.price?.message}>
-              <Input type="number" step="0.01" min="0" {...form.register('price')} />
-            </Field>
-            <Field label="Compare-at price (Rs.)" htmlFor="p-compare" hint="Shown struck through. Leave blank if not on sale.">
-              <Input type="number" step="0.01" min="0" {...form.register('compareAtPrice')} />
-            </Field>
           </section>
 
           <section className="rounded-lg border border-line p-5">

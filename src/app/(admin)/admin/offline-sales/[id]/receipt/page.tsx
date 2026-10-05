@@ -30,7 +30,7 @@ export default async function OfflineReceiptPage({ params }: { params: Promise<{
       </div>
       <div className="space-y-1 border-b border-dashed border-black py-2"><div className="flex justify-between"><span>Subtotal</span><span>{formatPaise(toPaise(sale.subtotal))}</span></div>
         {sale.couponCode && <div className="flex justify-between"><span>Coupon {sale.couponCode}</span><span>-{formatPaise(toPaise(sale.couponDiscount))}</span></div>}
-        {toPaise(sale.manualDiscount) > 0 && <div className="flex justify-between"><span>Additional discount</span><span>-{formatPaise(toPaise(sale.manualDiscount))}</span></div>}
+        {toPaise(sale.manualDiscount) > 0 && <div className="flex justify-between"><span>Additional discount ({Number(sale.manualDiscountPercent)}%)</span><span>-{formatPaise(toPaise(sale.manualDiscount))}</span></div>}
         {toPaise(sale.roundOff) !== 0 && <div className="flex justify-between"><span>Round off</span><span>{formatPaise(toPaise(sale.roundOff))}</span></div>}
         <div className="flex justify-between text-sm font-bold"><span>Total</span><span>{formatPaise(toPaise(sale.grandTotal))}</span></div></div>
       <p className="mt-2">Paid by {sale.paymentMethod.toLowerCase()}</p><p>You saved: {formatPaise(saved)}</p><p className="mt-5 text-center">Thanks for shopping with us!</p>

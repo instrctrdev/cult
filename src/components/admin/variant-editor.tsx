@@ -162,20 +162,21 @@ export function VariantEditor({
                       aria-label="SKU"
                       placeholder="Auto-generated"
                       value={row.sku}
-                      onChange={(e) => update(i, { sku: e.target.value })}
+                      readOnly
+                      title={/^\d{12}$/.test(row.sku) ? 'Unique barcode number' : 'A unique numeric SKU will replace this when variants are saved'}
                       className="h-10 w-40 font-mono text-xs"
                     />
                   </td>
                   <td className="p-2">
                     <Input
-                      aria-label="Price" type="number" step="0.01" min="0" value={row.price}
+                      aria-label="Price" type="text" inputMode="decimal" value={row.price}
                       onChange={(e) => update(i, { price: Number(e.target.value) })}
                       className="h-10 w-24"
                     />
                   </td>
                   <td className="p-2">
                     <Input
-                      aria-label="Compare at price" type="number" step="0.01" min="0"
+                      aria-label="Compare at price" type="text" inputMode="decimal"
                       value={row.compareAtPrice ?? ''}
                       onChange={(e) => update(i, { compareAtPrice: e.target.value ? Number(e.target.value) : null })}
                       className="h-10 w-24"
