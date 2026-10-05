@@ -123,7 +123,7 @@ export function VariantEditor({
               <tr className="text-2xs uppercase tracking-wide2 text-muted">
                 <th className="p-2.5 font-medium">Size</th>
                 <th className="p-2.5 font-medium">Colour</th>
-                <th className="p-2.5 font-medium">SKU</th>
+                <th className="p-2.5 font-medium">SKU / barcode</th>
                 <th className="p-2.5 font-medium">Price Rs.</th>
                 <th className="p-2.5 font-medium">Compare Rs.</th>
                 <th className="p-2.5 font-medium">Stock</th>
@@ -160,6 +160,7 @@ export function VariantEditor({
                   <td className="p-2">
                     <Input
                       aria-label="SKU"
+                      placeholder="Auto-generated"
                       value={row.sku}
                       onChange={(e) => update(i, { sku: e.target.value })}
                       className="h-10 w-40 font-mono text-xs"

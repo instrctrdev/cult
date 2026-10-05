@@ -8,6 +8,7 @@ import { AuditService } from '@/services/audit.service';
 import { adminProductSchema, adminVariantSchema } from '@/lib/validation';
 import { slugify } from '@/lib/utils';
 import { clientIp } from '@/lib/rate-limit';
+import { generateNumericSku } from '@/lib/numeric-sku';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,14 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
   const clash = await prisma.product.findUnique({ where: { slug }, select: { id: true } });
   if (clash) throw conflict('A product with that URL slug already exists.');
 
-  const skus = body.variants.map((variant) => variant.sku.trim());
+  const reservedSkus = new Set<string>();
+  const resolvedVariants = [];
+  for (const variant of body.variants) {
+    const sku = variant.sku.trim() || await generateNumericSku(reservedSkus);
+    reservedSkus.add(sku);
+    resolvedVariants.push({ ...variant, sku });
+  }
+  const skus = resolvedVariants.map((variant) => variant.sku);
   if (new Set(skus).size !== skus.length) throw conflict('Each variant needs a distinct SKU.');
   if (skus.length) {
     const foreignSku = await prisma.productVariant.findFirst({
@@ -60,7 +68,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       metaDescription: body.metaDescription ?? null,
       categories: { create: body.categoryIds.map((categoryId, i) => ({ categoryId, position: i })) },
       variants: {
-        create: body.variants.map((variant, position) => ({
+        create: resolvedVariants.map((variant, position) => ({
           sizeId: variant.sizeId || null,
           colorId: variant.colorId || null,
           sku: variant.sku.trim(),

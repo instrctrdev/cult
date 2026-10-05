@@ -198,7 +198,8 @@ export const adminVariantSchema = z.object({
   id: cuidSchema.optional(),
   sizeId: cuidSchema.optional().nullable(),
   colorId: cuidSchema.optional().nullable(),
-  sku: z.string().trim().min(1).max(100),
+  // Blank means "generate a unique numeric barcode" on creation/save.
+  sku: z.string().trim().max(100).default(''),
   price: z.coerce.number().min(0).max(10_000_000),
   compareAtPrice: z.coerce.number().min(0).max(10_000_000).optional().nullable(),
   quantity: z.coerce.number().int().min(0).max(1_000_000).default(0),

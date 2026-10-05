@@ -5,6 +5,7 @@ import { withErrorHandling, notFound, conflict } from '@/lib/errors';
 import { requirePermission } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { adminVariantSchema, cuidSchema } from '@/lib/validation';
+import { generateNumericSku } from '@/lib/numeric-sku';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,14 @@ export const PUT = withErrorHandling(async (req: NextRequest, ctx: Ctx) => {
   const product = await prisma.product.findUnique({ where: { id }, select: { id: true } });
   if (!product) throw notFound('Product not found.');
 
-  const { variants } = z.object({ variants: z.array(adminVariantSchema).min(1).max(60) }).parse(await req.json());
+  const parsed = z.object({ variants: z.array(adminVariantSchema).min(1).max(60) }).parse(await req.json());
+  const reservedSkus = new Set<string>();
+  const variants: Array<(typeof parsed.variants)[number]> = [];
+  for (const variant of parsed.variants) {
+    const sku = variant.sku.trim() || await generateNumericSku(reservedSkus);
+    reservedSkus.add(sku);
+    variants.push({ ...variant, sku });
+  }
 
   // A SKU must be unique across the whole catalogue, not just this product.
   const skus = variants.map((v) => v.sku.trim());
