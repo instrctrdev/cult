@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { z } from 'zod';
-import { ArrowDown, ArrowUp, Trash2, Upload, Video } from 'lucide-react';
+import { ArrowDown, ArrowUp, Barcode, Trash2, Upload, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input, Field, Textarea } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
@@ -76,6 +76,7 @@ export function ProductForm({
   const [uploadingVideo, setUploadingVideo] = React.useState(false);
   const [uploadingSizeChart, setUploadingSizeChart] = React.useState(false);
   const [selectedCategories, setSelectedCategories] = React.useState<string[]>(data.values.categoryIds ?? []);
+  const openLabelsAfterCreate = React.useRef(false);
 
   React.useEffect(() => () => {
     for (const url of pendingUrls.current) URL.revokeObjectURL(url);
@@ -90,6 +91,10 @@ export function ProductForm({
   const sizeChartImage = form.watch('sizeChartImage');
 
   const save = form.handleSubmit(async (values) => {
+    if (isNew && openLabelsAfterCreate.current && draftVariants.length === 0) {
+      toast({ title: 'Add at least one variant with a SKU before creating labels.', variant: 'error' });
+      return;
+    }
     if (isNew && values.status === 'ACTIVE' && !draftVariants.some((variant) => variant.isActive)) {
       toast({ title: 'Add an active variant before publishing.', variant: 'error' });
       return;
@@ -138,7 +143,9 @@ export function ProductForm({
         });
       } finally {
         setUploading(false);
-        router.push(`/admin/products/${json.id}`);
+        router.push(openLabelsAfterCreate.current
+          ? `/admin/products/${json.id}/labels`
+          : `/admin/products/${json.id}`);
       }
     } else {
       toast({ title: 'Product saved', variant: 'success' });
@@ -343,6 +350,14 @@ export function ProductForm({
         </div>
         <div className="flex gap-2">
           {!isNew && (
+            <Button asChild variant="outline">
+              <Link href={`/admin/products/${data.id}/labels`}>
+                <Barcode className="h-4 w-4" aria-hidden />
+                Print barcode labels
+              </Link>
+            </Button>
+          )}
+          {!isNew && (
             <Button
               variant="ghost"
               className="text-muted hover:text-danger"
@@ -366,7 +381,26 @@ export function ProductForm({
               Delete
             </Button>
           )}
-          <Button onClick={save} loading={form.formState.isSubmitting || uploading}>
+          {isNew && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                openLabelsAfterCreate.current = true;
+                void save();
+              }}
+              loading={form.formState.isSubmitting || uploading}
+            >
+              <Barcode className="h-4 w-4" aria-hidden />
+              Create & print labels
+            </Button>
+          )}
+          <Button
+            onClick={() => {
+              openLabelsAfterCreate.current = false;
+              void save();
+            }}
+            loading={form.formState.isSubmitting || uploading}
+          >
             {isNew ? 'Create product' : 'Save changes'}
           </Button>
         </div>
