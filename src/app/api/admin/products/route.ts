@@ -41,6 +41,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
     data: {
       slug,
       name: body.name,
+      vendor: body.vendor,
       subtitle: body.subtitle ?? null,
       description: body.description ?? null,
       details: (body.details ?? []) as unknown as Prisma.InputJsonValue,

@@ -26,7 +26,7 @@ export default async function NewProductPage() {
         videos: [],
         variants: [],
         values: {
-          name: '', slug: '', subtitle: '', description: '',
+          name: '', vendor: 'CULT', slug: '', subtitle: '', description: '',
           fabric: '', fit: '', sizeChartImage: '', price: 0, compareAtPrice: null,
           status: 'DRAFT', categoryIds: [],
           isFeatured: false, isNewArrival: false, isBestSeller: false,

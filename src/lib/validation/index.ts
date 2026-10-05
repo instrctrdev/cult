@@ -175,6 +175,7 @@ export const trackOrderSchema = z.object({
 
 export const adminProductSchema = z.object({
   name: z.string().trim().min(2).max(255),
+  vendor: z.string().trim().min(1).max(100),
   slug: z.string().trim().regex(/^[a-z0-9-]+$/, 'Use lowercase letters, numbers and hyphens.').max(191).optional(),
   subtitle: z.string().trim().max(255).optional().nullable(),
   description: z.string().max(20000).optional().nullable(),

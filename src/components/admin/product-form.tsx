@@ -381,6 +381,9 @@ export function ProductForm({
             <Field label="Product name" htmlFor="p-name" required error={form.formState.errors.name?.message}>
               <Input {...form.register('name')} />
             </Field>
+            <Field label="Brand name" htmlFor="p-vendor" required error={form.formState.errors.vendor?.message}>
+              <Input {...form.register('vendor')} />
+            </Field>
 
             <Field
               label="URL slug"

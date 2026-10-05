@@ -21,6 +21,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: '/admin/dashboard', label: 'Dashboard', Icon: LayoutDashboard, permission: 'orders.read' },
   { href: '/admin/orders', label: 'Orders', Icon: ShoppingCart, permission: 'orders.read' },
+  { href: '/admin/offline-sales', label: 'Offline billing', Icon: Banknote, permission: 'orders.read' },
   { href: '/admin/products', label: 'Products', Icon: Package, permission: 'products.read' },
   { href: '/admin/inventory', label: 'Inventory', Icon: Boxes, permission: 'inventory.read' },
   { href: '/admin/categories', label: 'Categories', Icon: Tags, permission: 'categories.read' },

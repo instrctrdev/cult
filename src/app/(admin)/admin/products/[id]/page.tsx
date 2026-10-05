@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { requirePermission } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { ProductForm } from '@/components/admin/product-form';
@@ -33,7 +34,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   if (!product) notFound();
 
   return (
-    <ProductForm
+    <div><div className="mb-4 flex justify-end"><Link href={`/admin/products/${id}/labels`} className="rounded border border-line px-4 py-2 text-sm">Generate / print labels</Link></div><ProductForm
       categories={categories}
       sizes={sizes}
       colors={colors}
@@ -60,6 +61,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         })),
         values: {
           name: product.name,
+          vendor: product.vendor,
           slug: product.slug,
           subtitle: product.subtitle ?? '',
           description: product.description ?? '',
@@ -77,6 +79,6 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
           metaDescription: product.metaDescription ?? '',
         },
       }}
-    />
+    /></div>
   );
 }
