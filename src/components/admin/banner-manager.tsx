@@ -57,8 +57,10 @@ export function BannerManager({ banners, canWrite }: { banners: AdminBanner[]; c
         <ul className="grid gap-3 md:grid-cols-2">
           {banners.map((banner) => (
             <li key={banner.id} className="overflow-hidden rounded-lg border border-line">
-              <div className="relative aspect-[16/7] bg-surface">
-                {banner.desktopImage ? (
+              <div className={cn('relative bg-surface', banner.placement === 'ANNOUNCEMENT' ? 'grid min-h-20 place-items-center bg-ink px-4 text-center text-xs uppercase tracking-wide2 text-white' : 'aspect-[16/7]')}>
+                {banner.placement === 'ANNOUNCEMENT' ? (
+                  <span>{banner.title}{banner.ctaLabel ? ` · ${banner.ctaLabel}` : ''}</span>
+                ) : banner.desktopImage ? (
                   <Image src={banner.desktopImage} alt="" fill sizes="480px" className="object-cover" />
                 ) : (
                   <div className="grid h-full place-items-center text-center">
@@ -165,6 +167,7 @@ function BannerForm({ banner, onDone }: { banner: AdminBanner | null; onDone: ()
       endsAt: banner?.endsAt ?? '',
     },
   });
+  const placement = form.watch('placement');
 
   const upload = async (which: 'desktop' | 'mobile', file: File) => {
     setUploading(which);
@@ -217,6 +220,12 @@ function BannerForm({ banner, onDone }: { banner: AdminBanner | null; onDone: ()
         </select>
       </Field>
 
+      {placement === 'ANNOUNCEMENT' && (
+        <p className="rounded-md bg-surface p-3 text-sm text-muted">
+          This message scrolls above the storefront header. Add several active announcements to rotate sale messages, coupon codes and delivery updates.
+        </p>
+      )}
+
       <Field label="Eyebrow" htmlFor="b-eyebrow" hint="Small line above the headline">
         <Input {...form.register('eyebrow')} />
       </Field>
@@ -227,7 +236,7 @@ function BannerForm({ banner, onDone }: { banner: AdminBanner | null; onDone: ()
         <Textarea rows={2} {...form.register('subtitle')} />
       </Field>
 
-      {(['desktop', 'mobile'] as const).map((which) => {
+      {placement !== 'ANNOUNCEMENT' && (['desktop', 'mobile'] as const).map((which) => {
         const key = which === 'desktop' ? 'desktopImage' : 'mobileImage';
         const value = form.watch(key);
         return (
@@ -256,26 +265,26 @@ function BannerForm({ banner, onDone }: { banner: AdminBanner | null; onDone: ()
         );
       })}
 
-      <Field
-        label="Video URL"
-        htmlFor="b-video"
-        hint="Optional. Setting this switches the hero to video mode, using the desktop image as the poster frame."
-      >
-        <Input type="url" placeholder="https://…" {...form.register('videoUrl')} />
-      </Field>
+      {placement !== 'ANNOUNCEMENT' && <Field
+          label="Video URL"
+          htmlFor="b-video"
+          hint="Optional. Setting this switches the hero to video mode, using the desktop image as the poster frame."
+        >
+          <Input type="url" placeholder="https://…" {...form.register('videoUrl')} />
+        </Field>}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Button label" htmlFor="b-cta">
+        <Field label={placement === 'ANNOUNCEMENT' ? 'Highlighted text' : 'Button label'} htmlFor="b-cta" hint={placement === 'ANNOUNCEMENT' ? 'Example: USE CODE DASARA60' : undefined}>
           <Input {...form.register('ctaLabel')} />
         </Field>
-        <Field label="Button link" htmlFor="b-href" hint="e.g. /shop">
+        <Field label={placement === 'ANNOUNCEMENT' ? 'Optional link' : 'Button link'} htmlFor="b-href" hint="e.g. /category/dasara-sale">
           <Input {...form.register('ctaHref')} />
         </Field>
       </div>
 
-      <Field label="Overlay colour" htmlFor="b-overlay" hint="Darkens the image so text stays readable.">
-        <Input {...form.register('overlay')} />
-      </Field>
+      {placement !== 'ANNOUNCEMENT' && <Field label="Overlay colour" htmlFor="b-overlay" hint="Darkens the image so text stays readable.">
+          <Input {...form.register('overlay')} />
+        </Field>}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Position" htmlFor="b-position">

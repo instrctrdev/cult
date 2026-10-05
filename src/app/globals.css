@@ -209,6 +209,31 @@
   --tw-ring-color: rgb(var(--gold) / 0.28);
 }
 
+@keyframes announcement-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.announcement-track {
+  animation: announcement-scroll 30s linear infinite;
+}
+
+.announcement-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-track {
+    width: 100%;
+    animation: none;
+    overflow-x: auto;
+  }
+
+  .announcement-track > div[aria-hidden] {
+    display: none;
+  }
+}
+
 .admin-login {
   background-image: linear-gradient(135deg, rgb(212 38 30 / 0.055), transparent 36%);
 }

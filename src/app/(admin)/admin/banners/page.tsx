@@ -17,8 +17,8 @@ export default async function AdminBannersPage() {
       <header>
         <h1 className="font-serif text-2xl">Banners</h1>
         <p className="mt-1 text-sm text-muted">
-          Homepage artwork with separate desktop and mobile images. Setting a video URL on a hero
-          banner switches it to video mode — no code change needed.
+          Manage storefront artwork and the announcement scroller. Announcement entries can show sale messages,
+          coupon codes or updates, with optional links and scheduled start and end dates.
         </p>
       </header>
 

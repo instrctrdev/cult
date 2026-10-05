@@ -1,6 +1,7 @@
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-/** A compact, responsive script wordmark until the final vector logo is supplied. */
+/** Responsive versions of the supplied CULT Clothing brand mark. */
 export function CultMark({
   className,
   inverted = false,
@@ -11,20 +12,15 @@ export function CultMark({
   showDescriptor?: boolean;
 }) {
   return (
-    <span className={cn('inline-flex items-end gap-1 leading-none', className)}>
-      <span
-        className={cn(
-          'font-script text-[2.15em] font-bold leading-[0.7]',
-          inverted ? 'text-white' : 'text-danger',
-        )}
-      >
-        Cult
-      </span>
-      {showDescriptor && (
-        <span className={cn('mb-[0.02em] font-sans text-[0.35em] font-semibold uppercase tracking-[0.1em]', inverted ? 'text-white/80' : 'text-ink')}>
-          Clothing
-        </span>
-      )}
+    <span className={cn('relative inline-block h-[1.5em] w-[3.38em] leading-none', className)}>
+      <Image
+        src={inverted ? '/images/brand/cult-logo-light.png' : '/images/brand/cult-logo-dark.png'}
+        alt={showDescriptor ? 'CULT Clothing' : 'CULT'}
+        fill
+        sizes="160px"
+        className="object-contain"
+        priority
+      />
     </span>
   );
 }
