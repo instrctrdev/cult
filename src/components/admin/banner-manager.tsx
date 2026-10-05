@@ -103,7 +103,7 @@ function AnnouncementForm({ onDone }: { onDone: () => void }) {
     if (!lines.length) { toast({ title: 'Enter at least one announcement.', variant: 'error' }); return; }
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/banners/announcements', {
+      const res = await fetch('/api/admin/banners', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: lines }),
       });
       const json = await res.json().catch(() => ({}));
