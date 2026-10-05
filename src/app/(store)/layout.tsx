@@ -21,30 +21,12 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   const wishlistCount = user ? (await WishlistService.productIds(user.id)).length : 0;
 
-  const bySlug = new Map(navCandidates.map((c) => [c.slug, c]));
-
-  /**
-   * Garment categories in the order the brand leads with. A category earns a
-   * header slot when it exists in the catalogue.
-   */
-  const primary: { slug: string; label: string }[] = [
-    { slug: 'shirts', label: 'Shirts' },
-    { slug: 'polos', label: 'Polos' },
-    { slug: 'jackets', label: 'Jackets' },
-    { slug: 'hoodies', label: 'Hoodies' },
-    { slug: 't-shirts', label: 'T-Shirts' },
-    { slug: 'kurtas', label: 'Kurta' },
-    { slug: 'bottoms', label: 'Bottoms' },
-  ];
-
-  const navItems: HeaderNavItem[] = [
-    ...primary
-      .filter((p) => {
-        const category = bySlug.get(p.slug);
-        return Boolean(category);
-      })
-      .map((p) => ({ label: p.label, href: `/category/${p.slug}` })),
-  ];
+  // Admin Categories is the source for desktop and mobile navigation.
+  // navCandidates already applies Active, In nav and the configured sort order.
+  const navItems: HeaderNavItem[] = navCandidates.map((category) => ({
+    label: category.name,
+    href: `/category/${category.slug}`,
+  }));
 
   return (
     <div className="flex min-h-dvh flex-col">
