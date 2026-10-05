@@ -13,12 +13,24 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
   const variants = await prisma.productVariant.findMany({
     where: {
       isActive: true, deletedAt: null, product: { deletedAt: null },
-      OR: [{ id: q }, { sku: q }, { sku: { contains: q } }, { product: { name: { contains: q } } }],
+      OR: [
+        { id: q }, { sku: q }, { sku: { contains: q } },
+        { product: { name: { contains: q } } },
+        { product: { slug: { contains: q } } },
+        { product: { vendor: { contains: q } } },
+      ],
     },
     orderBy: { sku: 'asc' }, take: 20,
     include: { product: true, size: true, color: true, inventory: true },
   });
-  if (!variants.length) throw notFound('No product found for that scan or search.');
+  if (!variants.length) {
+    const productWithoutVariant = await prisma.product.findFirst({
+      where: { deletedAt: null, OR: [{ name: { contains: q } }, { slug: { contains: q } }] },
+      select: { id: true },
+    });
+    if (productWithoutVariant) throw badRequest('Product found, but it has no active SKU variant. Open the product and create its barcode label first.');
+    throw notFound('No product found for that barcode, SKU, name, brand, or URL slug.');
+  }
   return NextResponse.json({ items: variants.map((v) => ({
     id: v.id, sku: v.sku, name: v.product.name, brand: v.product.vendor,
     variant: [v.size?.label, v.color?.name].filter(Boolean).join(' / '),

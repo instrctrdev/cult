@@ -18,6 +18,8 @@ export function OfflinePos() {
   const [customerPhone, setCustomerPhone] = React.useState('');
   const [method, setMethod] = React.useState<'CASH' | 'CARD'>('CASH');
   const [busy, setBusy] = React.useState(false);
+  const [searching, setSearching] = React.useState(false);
+  const [searchError, setSearchError] = React.useState('');
   const [quote, setQuote] = React.useState<{ fingerprint: string; subtotalPaise: number; couponDiscountPaise: number; manualDiscountPaise: number; roundOffPaise: number; grandTotalPaise: number } | null>(null);
   const [error, setError] = React.useState('');
   const [key, setKey] = React.useState(() => crypto.randomUUID());
@@ -31,14 +33,19 @@ export function OfflinePos() {
 
   async function search(value = query) {
     if (!value.trim()) return;
-    setError('');
-    const response = await fetch(`/api/admin/offline-sales/lookup?q=${encodeURIComponent(value.trim())}`);
-    const data = await response.json();
-    if (!response.ok) { setError(data.error?.message ?? 'Item not found.'); setResults([]); return; }
-    const items = data.items as Item[];
-    const exact = items.find((item) => item.id === value.trim() || item.sku.toLowerCase() === value.trim().toLowerCase());
-    if (exact) { add(exact); setResults([]); setQuery(''); scanRef.current?.focus(); }
-    else setResults(items);
+    setSearchError(''); setSearching(true);
+    try {
+      const response = await fetch(`/api/admin/offline-sales/lookup?q=${encodeURIComponent(value.trim())}`);
+      const data = await response.json();
+      if (!response.ok) { setSearchError(data.error?.message ?? 'Item not found.'); setResults([]); return; }
+      const items = data.items as Item[];
+      const exact = items.find((item) => item.id === value.trim() || item.sku.toLowerCase() === value.trim().toLowerCase());
+      if (exact) { add(exact); setResults([]); setQuery(''); scanRef.current?.focus(); }
+      else setResults(items);
+    } catch {
+      setSearchError('Search could not connect. Please try again.');
+      setResults([]);
+    } finally { setSearching(false); }
   }
 
   function add(item: Item) {
@@ -86,8 +93,9 @@ export function OfflinePos() {
       <p className="mt-1 text-xs text-muted">Use a USB or Bluetooth scanner in keyboard mode, or search by SKU or name.</p>
       <form className="mt-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); void search(); }}>
         <input ref={scanRef} autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Scan barcode or enter SKU" className="min-w-0 flex-1 rounded border border-line px-3 py-2 text-sm" />
-        <button className="rounded bg-ink px-4 py-2 text-sm text-white">Find</button>
+        <button disabled={searching} className="rounded bg-ink px-4 py-2 text-sm text-white disabled:opacity-50">{searching ? 'Finding…' : 'Find'}</button>
       </form>
+      {searchError && <p role="alert" className="mt-2 rounded bg-red-50 p-2 text-sm text-danger">{searchError}</p>}
       {results.length > 0 && <div className="mt-3 max-h-64 overflow-y-auto rounded border border-line">
         {results.map((item) => <button key={item.id} type="button" onClick={() => { add(item); setResults([]); setQuery(''); scanRef.current?.focus(); }} className="flex w-full justify-between gap-2 border-b border-line p-3 text-left text-sm hover:bg-surface">
           <span><strong>{item.name}</strong><span className="block text-xs text-muted">{item.variant} · {item.sku} · {item.available} available</span></span><span>{formatPaise(item.pricePaise)}</span>
