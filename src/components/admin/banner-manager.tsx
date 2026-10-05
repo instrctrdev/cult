@@ -78,19 +78,50 @@ export function BannerManager({ banners, canWrite }: { banners: AdminBanner[]; c
           className="lg:inset-y-0 lg:right-0 lg:left-auto lg:max-h-none lg:max-w-lg lg:rounded-none"
         >
           {editing && (
-            <BannerForm
-              banner={typeof editing === 'string' ? null : editing}
-              defaultPlacement={editing === 'new-announcement' ? 'ANNOUNCEMENT' : 'HOME_HERO'}
-              onDone={() => {
-                setEditing(null);
-                router.refresh();
-              }}
-            />
+            editing === 'new-announcement'
+              ? <AnnouncementForm onDone={() => { setEditing(null); router.refresh(); }} />
+              : <BannerForm
+                  banner={editing === 'new-banner' ? null : editing}
+                  defaultPlacement="HOME_HERO"
+                  onDone={() => { setEditing(null); router.refresh(); }}
+                />
           )}
         </SheetContent>
       </Sheet>
     </>
   );
+}
+
+function AnnouncementForm({ onDone }: { onDone: () => void }) {
+  const { toast } = useToast();
+  const [messages, setMessages] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const lines = messages.split('\n').map((line) => line.trim()).filter(Boolean);
+    if (!lines.length) { toast({ title: 'Enter at least one announcement.', variant: 'error' }); return; }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/banners/announcements', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: lines }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error?.message ?? 'Could not create announcements.');
+      toast({ title: `${json.count} announcement${json.count === 1 ? '' : 's'} created`, variant: 'success' });
+      onDone();
+    } catch (error) {
+      toast({ title: error instanceof Error ? error.message : 'Could not create announcements.', variant: 'error' });
+    } finally { setSaving(false); }
+  };
+
+  return <form onSubmit={save} className="space-y-4 pb-4">
+    <Field label="Announcement messages" htmlFor="announcement-messages" required hint="Enter one message per line. Every line becomes a separate scrolling item.">
+      <Textarea id="announcement-messages" rows={10} value={messages} onChange={(event) => setMessages(event.target.value)} placeholder={'GET 5% OFF ON PREPAID!\nGET DELIVERY IN 2-5 WORKING DAYS\nBUY ANY 2 GET 10% OFF\nBUY ANY 3 GET 15% OFF\nBUY ANY 4 GET 20% OFF'} />
+    </Field>
+    <p className="rounded-md bg-surface p-3 text-sm text-muted">All messages will be active immediately. You can edit, reorder or switch off each message afterward.</p>
+    <Button type="submit" size="lg" full loading={saving}>Create announcements</Button>
+  </form>;
 }
 
 function BannerCard({ banner, canWrite, onEdit, onDelete }: { banner: AdminBanner; canWrite: boolean; onEdit: () => void; onDelete: () => void }) {
@@ -129,6 +160,7 @@ function BannerForm({ banner, defaultPlacement, onDone }: { banner: AdminBanner 
     },
   });
   const placement = form.watch('placement');
+  const isAnnouncement = placement === 'ANNOUNCEMENT';
 
   const upload = async (which: 'desktop' | 'mobile', file: File) => {
     setUploading(which);
@@ -175,11 +207,11 @@ function BannerForm({ banner, defaultPlacement, onDone }: { banner: AdminBanner 
       })}
       className="space-y-4 pb-4"
     >
-      <Field label="Placement" htmlFor="b-placement">
+      {!isAnnouncement && <Field label="Placement" htmlFor="b-placement">
         <select id="b-placement" className="h-12 w-full rounded-md border border-ink/15 bg-bg px-3" {...form.register('placement')}>
           {PLACEMENTS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
         </select>
-      </Field>
+      </Field>}
 
       {placement === 'ANNOUNCEMENT' && (
         <p className="rounded-md bg-surface p-3 text-sm text-muted">
@@ -187,15 +219,15 @@ function BannerForm({ banner, defaultPlacement, onDone }: { banner: AdminBanner 
         </p>
       )}
 
-      <Field label="Eyebrow" htmlFor="b-eyebrow" hint="Small line above the headline">
+      {!isAnnouncement && <Field label="Eyebrow" htmlFor="b-eyebrow" hint="Small line above the headline">
         <Input {...form.register('eyebrow')} />
-      </Field>
-      <Field label="Headline" htmlFor="b-title" required>
+      </Field>}
+      <Field label={isAnnouncement ? 'Announcement message' : 'Headline'} htmlFor="b-title" required>
         <Input {...form.register('title', { required: true })} />
       </Field>
-      <Field label="Subtitle" htmlFor="b-subtitle">
+      {!isAnnouncement && <Field label="Subtitle" htmlFor="b-subtitle">
         <Textarea rows={2} {...form.register('subtitle')} />
-      </Field>
+      </Field>}
 
       {placement !== 'ANNOUNCEMENT' && (['desktop', 'mobile'] as const).map((which) => {
         const key = which === 'desktop' ? 'desktopImage' : 'mobileImage';
@@ -234,29 +266,29 @@ function BannerForm({ banner, defaultPlacement, onDone }: { banner: AdminBanner 
           <Input type="url" placeholder="https://…" {...form.register('videoUrl')} />
         </Field>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {!isAnnouncement && <div className="grid gap-4 sm:grid-cols-2">
         <Field label={placement === 'ANNOUNCEMENT' ? 'Highlighted text' : 'Button label'} htmlFor="b-cta" hint={placement === 'ANNOUNCEMENT' ? 'Example: USE CODE DASARA60' : undefined}>
           <Input {...form.register('ctaLabel')} />
         </Field>
         <Field label={placement === 'ANNOUNCEMENT' ? 'Optional link' : 'Button link'} htmlFor="b-href" hint="e.g. /category/dasara-sale">
           <Input {...form.register('ctaHref')} />
         </Field>
-      </div>
+      </div>}
 
       {placement !== 'ANNOUNCEMENT' && <Field label="Overlay colour" htmlFor="b-overlay" hint="Darkens the image so text stays readable.">
           <Input {...form.register('overlay')} />
         </Field>}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className={cn('grid gap-4', isAnnouncement ? 'sm:grid-cols-1' : 'sm:grid-cols-3')}>
         <Field label="Position" htmlFor="b-position">
           <Input type="number" min="0" {...form.register('position')} />
         </Field>
-        <Field label="Starts" htmlFor="b-start">
+        {!isAnnouncement && <Field label="Starts" htmlFor="b-start">
           <Input type="date" {...form.register('startsAt')} />
-        </Field>
-        <Field label="Ends" htmlFor="b-end">
+        </Field>}
+        {!isAnnouncement && <Field label="Ends" htmlFor="b-end">
           <Input type="date" {...form.register('endsAt')} />
-        </Field>
+        </Field>}
       </div>
 
       <label className="flex cursor-pointer items-center gap-2.5 text-sm">
@@ -265,7 +297,7 @@ function BannerForm({ banner, defaultPlacement, onDone }: { banner: AdminBanner 
       </label>
 
       <Button type="submit" size="lg" full loading={form.formState.isSubmitting}>
-        {banner ? 'Save banner' : 'Create banner'}
+        {isAnnouncement ? 'Save announcement' : banner ? 'Save banner' : 'Create banner'}
       </Button>
     </form>
   );
