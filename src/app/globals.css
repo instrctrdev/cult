@@ -214,8 +214,14 @@
   to { transform: translateX(-50%); }
 }
 
+.announcement-bar {
+  background: linear-gradient(90deg, #b21713 0%, #d4261e 50%, #b21713 100%);
+  box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.08);
+}
+
 .announcement-track {
-  animation: announcement-scroll 30s linear infinite;
+  animation: announcement-scroll 34s linear infinite;
+  will-change: transform;
 }
 
 .announcement-track:hover {
