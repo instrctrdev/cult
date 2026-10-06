@@ -107,8 +107,8 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
           <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">4. Print from Chrome</strong><span className="mt-1 block text-muted">Choose P58D, paper 50 × 30 mm, scale 100%, margins None and turn Headers and footers off.</span></li>
         </ol>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-          <p className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />After Windows shows P58D as Ready, the Print labels button below will send the job through the normal Windows print dialog.</p>
-          <a className="font-medium text-ink underline" href="https://www.shreyanspos.com/pages/psf58d" target="_blank" rel="noopener noreferrer">Download Shreyans driver</a>
+          <p className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />The admin page cannot read Windows&apos; printer list. After Windows shows P58D as Ready, click Print labels and choose P58D from the Chrome print dialog.</p>
+          <a className="font-medium text-ink underline" href="https://cdn.shopify.com/s/files/1/0857/2020/3564/files/P58DLabelSetup.zip?v=1789812954" target="_blank" rel="noopener noreferrer">Download P58D Windows label driver</a>
         </div>
         <p className="mt-3 rounded bg-amber-50 p-3 text-xs text-amber-900">The P58D is a 58 mm thermal printer. Use a compatible 50 × 30 mm adhesive roll and confirm that it stops correctly between labels. If it feeds continuously, the model does not sense label gaps and a gap-sensing label printer is required for individual stickers.</p>
       </div>
