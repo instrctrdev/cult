@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import JsBarcode from 'jsbarcode';
 import { Barcode, Bluetooth, CheckCircle2, Minus, Plus, Printer } from 'lucide-react';
 import { formatPaise } from '@/lib/money';
+import { WindowsPrinterManager } from '@/components/admin/windows-printer-manager';
+import {
+  LABEL_PRINTER_KEY, PRINTER_SELECTION_EVENT, printLabelHtml, savedPrinter,
+} from '@/lib/qz-print';
 
 type LabelItem = { id: string; sku: string; name: string; brand: string; variant: string; mrpPaise: number; stock: number };
 type EmptyProduct = { id: string; price: number; compareAtPrice: number | null };
@@ -29,6 +33,8 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
   const [stock, setStock] = React.useState(1);
   const [creating, setCreating] = React.useState(false);
   const [converting, setConverting] = React.useState(false);
+  const [directPrinting, setDirectPrinting] = React.useState(false);
+  const [labelPrinter, setLabelPrinter] = React.useState('');
   const [error, setError] = React.useState('');
 
   const labels = items.flatMap((item) => Array.from({ length: counts[item.id] ?? 0 }, (_, copy) => ({ item, copy })));
@@ -49,6 +55,16 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
       if (value) JsBarcode(node, value, { format: 'CODE128', width: 1.35, height: 38, margin: 0, displayValue: true, fontSize: 11 });
     });
   }, [counts, items]);
+
+  React.useEffect(() => {
+    setLabelPrinter(savedPrinter(LABEL_PRINTER_KEY));
+    const update = (event: Event) => {
+      const detail = (event as CustomEvent<{ key: string; value: string }>).detail;
+      if (detail?.key === LABEL_PRINTER_KEY) setLabelPrinter(detail.value);
+    };
+    window.addEventListener(PRINTER_SELECTION_EVENT, update);
+    return () => window.removeEventListener(PRINTER_SELECTION_EVENT, update);
+  }, []);
 
   function setCount(id: string, value: number) {
     setCounts((previous) => ({ ...previous, [id]: Math.max(0, Math.min(MAX_COPIES, value || 0)) }));
@@ -85,6 +101,18 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
     } finally { setConverting(false); }
   }
 
+  async function printDirectly() {
+    if (!labelPrinter || !labels.length) return;
+    setDirectPrinting(true); setError('');
+    try {
+      const rendered = Array.from(document.querySelectorAll<HTMLElement>('.label-sheet .product-label'));
+      if (!rendered.length) throw new Error('No labels are ready to print.');
+      await printLabelHtml(labelPrinter, rendered.map((label) => label.outerHTML));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not print to the selected Windows printer.');
+    } finally { setDirectPrinting(false); }
+  }
+
   if (!items.length) return <section className="max-w-2xl rounded-lg border border-gold/30 bg-white p-5">
     <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/10"><Barcode className="h-5 w-5" /></span><div><h2 className="font-serif text-lg">Create the first scannable variant</h2><p className="mt-1 text-sm text-muted">This product was saved without a SKU variant. Create a default variant now so its label can be printed and found in offline billing.</p></div></div>
     <div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="rounded border border-line bg-surface/50 p-3 text-sm"><span className="block font-medium">Barcode SKU</span><span className="mt-1 block text-muted">A unique 12-digit number will be generated automatically.</span></div><label className="text-sm">Starting stock<input type="number" min={0} max={1000000} value={stock} onChange={(event) => setStock(Math.max(0, Number(event.target.value) || 0))} className="mt-1 w-full rounded border border-line p-2" /></label></div>
@@ -94,6 +122,7 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
 
   const hasLegacySku = items.some((item) => !/^\d{8,14}$/.test(item.sku));
   return <div className="space-y-6">
+    <WindowsPrinterManager labelOnly />
     <details className="print-hide overflow-hidden rounded-lg border border-line bg-white" open>
       <summary className="flex cursor-pointer list-none items-center gap-3 p-4 font-semibold marker:content-none">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold/10"><Bluetooth className="h-4 w-4" /></span>
@@ -104,10 +133,10 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
           <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">1. Pair the printer</strong><span className="mt-1 block text-muted">Switch on the P58D. In Windows open Settings → Bluetooth &amp; devices → Printers &amp; scanners → Add device, then select P58D.</span></li>
           <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">2. Install its driver</strong><span className="mt-1 block text-muted">Install the Shreyans P58D Windows driver. If asked for a port, select the Bluetooth COM port created by Windows.</span></li>
           <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">3. Set label paper</strong><span className="mt-1 block text-muted">In Printer properties set the custom paper to 50 × 30 mm. Print one Windows test page before printing product labels.</span></li>
-          <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">4. Print from Chrome</strong><span className="mt-1 block text-muted">Choose P58D, paper 50 × 30 mm, scale 100%, margins None and turn Headers and footers off.</span></li>
+          <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">4. Select it above</strong><span className="mt-1 block text-muted">Install and open QZ Tray, click Find printers, then save P58D as the Label printer. You can then print directly.</span></li>
         </ol>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-          <p className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />The admin page cannot read Windows&apos; printer list. After Windows shows P58D as Ready, click Print labels and choose P58D from the Chrome print dialog.</p>
+          <p className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />QZ Tray securely provides the installed Windows printer list to this admin page. The regular Chrome print dialog remains available as a fallback.</p>
           <a className="font-medium text-ink underline" href="https://cdn.shopify.com/s/files/1/0857/2020/3564/files/P58DLabelSetup.zip?v=1789812954" target="_blank" rel="noopener noreferrer">Download P58D Windows label driver</a>
         </div>
         <p className="mt-3 rounded bg-amber-50 p-3 text-xs text-amber-900">The P58D is a 58 mm thermal printer. Use a compatible 50 × 30 mm adhesive roll and confirm that it stops correctly between labels. If it feeds continuously, the model does not sense label gaps and a gap-sensing label printer is required for individual stickers.</p>
@@ -122,7 +151,7 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
         <div className="flex items-center rounded border border-line"><button type="button" aria-label={`Remove one ${item.variant || item.sku} label`} onClick={() => setCount(item.id, (counts[item.id] ?? 0) - 1)} className="grid h-9 w-9 place-items-center"><Minus className="h-3.5 w-3.5" /></button><input aria-label={`Copies for ${item.variant || item.sku}`} type="number" min={0} max={MAX_COPIES} value={counts[item.id] ?? 0} onChange={(event) => setCount(item.id, Number(event.target.value))} className="h-9 w-16 border-x border-line text-center tabular-nums" /><button type="button" aria-label={`Add one ${item.variant || item.sku} label`} onClick={() => setCount(item.id, (counts[item.id] ?? 0) + 1)} className="grid h-9 w-9 place-items-center"><Plus className="h-3.5 w-3.5" /></button></div>
         <span className="w-20 text-right text-sm font-semibold tabular-nums">{counts[item.id] ?? 0} label{(counts[item.id] ?? 0) === 1 ? '' : 's'}</span>
       </div>)}</div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface/40 p-4"><p className="text-sm"><strong>{labels.length}</strong> labels across <strong>{selectedVariants}</strong> of {items.length} variants</p><button type="button" disabled={!labels.length} onClick={() => window.print()} className="inline-flex items-center gap-2 rounded bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"><Printer className="h-4 w-4" />Print all {labels.length} labels</button></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface/40 p-4"><p className="text-sm"><strong>{labels.length}</strong> labels across <strong>{selectedVariants}</strong> of {items.length} variants</p><div className="flex flex-wrap gap-2">{labelPrinter && <button type="button" disabled={!labels.length || directPrinting} onClick={() => void printDirectly()} className="inline-flex items-center gap-2 rounded bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"><Printer className="h-4 w-4" />{directPrinting ? 'Sending…' : `Print to ${labelPrinter}`}</button>}<button type="button" disabled={!labels.length} onClick={() => window.print()} className="inline-flex items-center gap-2 rounded border border-line bg-white px-5 py-2.5 text-sm font-semibold disabled:opacity-40"><Printer className="h-4 w-4" />Use Windows print dialog</button></div></div>
     </section>
 
     <section><div className="print-hide mb-3"><h2 className="font-serif text-lg">Print preview</h2><p className="mt-1 text-xs text-muted">This is how every 50 × 30 mm label will print on the Shreyans P58D through Windows. In Chrome use 100% scale, margins None and headers and footers off.</p></div>

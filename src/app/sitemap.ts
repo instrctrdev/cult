@@ -4,6 +4,10 @@ import { CategoryService } from '@/services/category.service';
 import { prisma } from '@/lib/prisma';
 import { publicEnv } from '@/lib/env';
 
+// Sitemap content comes from the live catalogue and is generated per request.
+// This avoids requiring the production database while the application builds.
+export const dynamic = 'force-dynamic';
+
 /** Generated from live data — no hard-coded URL list to drift out of date. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = publicEnv.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');

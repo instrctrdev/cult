@@ -20,10 +20,9 @@ export const revalidate = 300;
 
 type Params = Promise<{ slug: string }>;
 
-export async function generateStaticParams() {
-  const products = await ProductService.allSlugs();
-  return products.map((p) => ({ slug: p.slug }));
-}
+// Generate and cache product pages on first request so a temporary database
+// outage during deployment cannot fail the entire application build.
+export function generateStaticParams() { return []; }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;

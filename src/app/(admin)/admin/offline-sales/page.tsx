@@ -3,6 +3,7 @@ import { requirePermission } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
 import { formatPaise, toPaise } from '@/lib/money';
 import { OfflinePos } from '@/components/admin/offline-pos';
+import { WindowsPrinterManager } from '@/components/admin/windows-printer-manager';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ export default async function OfflineSalesPage({ searchParams }: { searchParams:
       <div className="rounded-lg border border-line bg-white p-5"><p className="text-xs uppercase text-muted">Offline today · {today}</p><strong className="mt-2 block font-serif text-2xl">{formatPaise(toPaise(dayStats._sum.grandTotal ?? 0))}</strong><p className="text-sm text-muted">{dayStats._count} sales</p></div>
       <div className="rounded-lg border border-line bg-white p-5"><p className="text-xs uppercase text-muted">Offline this month</p><strong className="mt-2 block font-serif text-2xl">{formatPaise(toPaise(monthStats._sum.grandTotal ?? 0))}</strong><p className="text-sm text-muted">{monthStats._count} sales</p></div>
     </div>
+    <WindowsPrinterManager />
     <details className="rounded-lg border border-line bg-white p-4 text-sm"><summary className="cursor-pointer font-semibold">Windows printer and scanner setup</summary><div className="mt-3 grid gap-3 text-muted sm:grid-cols-2"><p><strong className="text-ink">Labels · Shreyans P58D Bluetooth</strong><br />Pair it in Windows Settings → Bluetooth &amp; devices → Printers &amp; scanners → Add device. Install the P58D Windows Label Driver, choose the Bluetooth COM port if requested, and set custom paper to 50 × 30 mm.</p><p><strong className="text-ink">Bills · TVS RP 3230 USB</strong><br />Install the TVS Windows receipt driver and select the paper width actually loaded, usually 80 mm. The barcode scanner should use keyboard mode with an Enter suffix.</p></div><p className="mt-3 text-muted">In Chrome choose the required printer in the print dialog, use 100% scale and turn margins, headers and footers off. Print one Windows test page, one product label and one receipt before billing.</p><p className="mt-2 flex gap-4"><a className="underline" href="https://cdn.shopify.com/s/files/1/0857/2020/3564/files/P58DLabelSetup.zip?v=1789812954" target="_blank" rel="noopener noreferrer">P58D Windows label driver</a><a className="underline" href="https://www.tvs-e.in/product-support/" target="_blank" rel="noopener noreferrer">TVS Windows driver</a></p></details>
     <OfflinePos />
     <section className="rounded-lg border border-line bg-white p-5"><h2 className="font-serif text-xl">Offline sales history</h2>

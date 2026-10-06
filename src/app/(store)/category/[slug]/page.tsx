@@ -12,11 +12,10 @@ export const revalidate = 300;
 type Params = Promise<{ slug: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-/** Pre-renders every live collection at build time. */
-export async function generateStaticParams() {
-  const categories = await CategoryService.allSlugs();
-  return categories.map((c) => ({ slug: c.slug }));
-}
+// Generate and cache collection pages on first request. Returning an empty
+// list keeps deploys independent of the production database connection while
+// `dynamicParams` (true by default) still serves every live collection.
+export function generateStaticParams() { return []; }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;

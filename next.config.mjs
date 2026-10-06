@@ -16,6 +16,14 @@ const nextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   experimental: { optimizePackageImports: ['lucide-react', 'framer-motion'] },
+  // QZ Tray 2.3 optionally looks for its browser-only Local Network Access
+  // helper. The helper is not published as an npm package; Chrome itself
+  // handles the localhost permission prompt, so keep the optional import out
+  // of the production bundle.
+  webpack(config) {
+    config.resolve.alias = { ...config.resolve.alias, lna: false };
+    return config;
+  },
   // Next's dev server blocks cross-origin requests by default (anti DNS-rebinding).
   // Needed only for `next dev` tunnelled through ngrok/similar — has no effect
   // on `next build`/`next start`, so it's safe to leave in permanently.
