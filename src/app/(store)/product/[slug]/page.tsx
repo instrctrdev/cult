@@ -65,8 +65,14 @@ export default async function ProductPage({ params }: { params: Params }) {
   }
 
   const [related, user, settings] = await Promise.all([
-    ProductService.related(product.id, 8),
-    getCurrentUser(),
+    ProductService.related(product.id, 8).catch((error) => {
+      console.error('[product-page] related products unavailable', error);
+      return [];
+    }),
+    getCurrentUser().catch((error) => {
+      console.error('[product-page] session lookup unavailable', error);
+      return null;
+    }),
     getSettings(),
   ]);
 

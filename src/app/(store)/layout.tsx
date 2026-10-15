@@ -17,12 +17,28 @@ import { AnnouncementBar } from '@/components/store/announcement-bar';
  */
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   const [navCandidates, announcements, user] = await Promise.all([
-    CategoryService.navCandidates(),
-    BannerService.byPlacement('ANNOUNCEMENT'),
-    getCurrentUser(),
+    CategoryService.navCandidates().catch((error) => {
+      console.error('[store-layout] navigation unavailable', error);
+      return [];
+    }),
+    BannerService.byPlacement('ANNOUNCEMENT').catch((error) => {
+      console.error('[store-layout] announcements unavailable', error);
+      return [];
+    }),
+    getCurrentUser().catch((error) => {
+      console.error('[store-layout] session lookup unavailable', error);
+      return null;
+    }),
   ]);
 
-  const wishlistCount = user ? (await WishlistService.productIds(user.id)).length : 0;
+  const wishlistCount = user
+    ? await WishlistService.productIds(user.id)
+        .then((ids) => ids.length)
+        .catch((error) => {
+          console.error('[store-layout] wishlist unavailable', error);
+          return 0;
+        })
+    : 0;
 
   // Admin Categories is the source for desktop and mobile navigation.
   // navCandidates already applies Active, In nav and the configured sort order.
