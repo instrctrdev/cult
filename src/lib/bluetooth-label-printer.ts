@@ -14,6 +14,22 @@ export type BluetoothLabel = {
 };
 
 let activePort: SerialPort | null = null;
+let nextPortId = 1;
+const portIds = new WeakMap<SerialPort, string>();
+
+export type AuthorizedBluetoothPrinter = {
+  id: string;
+  label: string;
+  connected: boolean | null;
+  selected: boolean;
+  port: SerialPort;
+};
+
+function idFor(port: SerialPort) {
+  let id = portIds.get(port);
+  if (!id) { id = `bluetooth-printer-${nextPortId++}`; portIds.set(port, id); }
+  return id;
+}
 
 function isBluetoothPort(port: SerialPort) {
   const id = port.getInfo().bluetoothServiceClassId;
@@ -24,11 +40,36 @@ export function supportsBluetoothPrinting() {
   return typeof navigator !== 'undefined' && Boolean(navigator.serial) && window.isSecureContext;
 }
 
+/**
+ * Web Serial deliberately exposes only ports already approved by the user.
+ * Chrome does not expose the Bluetooth device's friendly name, so the admin
+ * list uses stable session labels and connection state instead.
+ */
+export async function authorizedBluetoothPrinters(): Promise<AuthorizedBluetoothPrinter[]> {
+  if (!navigator.serial) return [];
+  const ports = (await navigator.serial.getPorts()).filter(isBluetoothPort);
+  if (activePort && !ports.includes(activePort)) activePort = null;
+  if (!activePort) activePort = ports.find((port) => port.connected !== false) ?? ports[0] ?? null;
+  return ports.map((port, index) => ({
+    id: idFor(port),
+    label: `P58D / Bluetooth SPP ${index + 1}`,
+    connected: typeof port.connected === 'boolean' ? port.connected : null,
+    selected: port === activePort,
+    port,
+  }));
+}
+
+export function selectBluetoothPrinter(port: SerialPort) {
+  if (!isBluetoothPort(port)) throw new Error('That device is not a Bluetooth serial printer.');
+  activePort = port;
+  window.dispatchEvent(new Event(BLUETOOTH_PRINTER_EVENT));
+}
+
 export async function permittedBluetoothPrinter(): Promise<SerialPort | null> {
   if (!navigator.serial) return null;
   if (activePort) return activePort;
-  const ports = await navigator.serial.getPorts();
-  activePort = ports.find(isBluetoothPort) ?? null;
+  const ports = await authorizedBluetoothPrinters();
+  activePort = ports.find((printer) => printer.selected)?.port ?? null;
   return activePort;
 }
 
@@ -92,6 +133,7 @@ function escPosRaster(data: Uint8Array) {
 export async function printBluetoothLabels(labels: BluetoothLabel[]) {
   const port = activePort ?? await permittedBluetoothPrinter();
   if (!port) throw new Error('Connect the P58D Bluetooth printer first.');
+  if (port.connected === false) throw new Error('The selected Bluetooth printer is unavailable. Switch it on, reconnect it in Windows, then refresh the printer list.');
   if (!port.writable) await port.open({ baudRate: 9600, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none' });
   if (!port.writable) throw new Error('The P58D Bluetooth connection did not open.');
   const writer = port.writable.getWriter();

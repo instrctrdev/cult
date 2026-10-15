@@ -5,6 +5,8 @@ interface SerialPortInfo {
 }
 
 interface SerialPort {
+  /** Chrome 130+: whether the Bluetooth RFCOMM device is logically present. */
+  readonly connected?: boolean;
   readonly readable: ReadableStream<Uint8Array> | null;
   readonly writable: WritableStream<Uint8Array> | null;
   getInfo(): SerialPortInfo;
@@ -24,6 +26,8 @@ interface Serial {
     filters?: SerialPortFilter[];
     allowedBluetoothServiceClassIds?: Array<number | string>;
   }): Promise<SerialPort>;
+  addEventListener(type: 'connect' | 'disconnect', listener: (event: Event) => void): void;
+  removeEventListener(type: 'connect' | 'disconnect', listener: (event: Event) => void): void;
 }
 
 interface Navigator { readonly serial?: Serial; }
