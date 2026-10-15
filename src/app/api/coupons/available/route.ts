@@ -41,8 +41,9 @@ export const GET = withErrorHandling(async () => {
     take: 20,
     select: {
       code: true, description: true, type: true, value: true,
+      offerType: true, buyQuantity: true, getQuantity: true, bundleQuantity: true,
       minOrderAmount: true, usageLimit: true, usedCount: true, freeShipping: true,
-      firstOrderOnly: true,
+      firstOrderOnly: true, minCompletedOrders: true, autoApply: true,
     },
   });
 
@@ -59,8 +60,11 @@ export const GET = withErrorHandling(async () => {
         // A free-shipping code often carries a zero value of either type, so
         // that is checked before the discount is described — "0% off" is not
         // an offer anyone would claim.
-        label:
-          c.freeShipping && Number(c.value) === 0
+        label: c.offerType === 'BUY_X_GET_Y'
+          ? `Buy ${c.buyQuantity}, get ${c.getQuantity} free`
+          : c.offerType === 'BUNDLE_PRICE'
+            ? `Any ${c.bundleQuantity} for Rs. ${Number(c.value)}`
+          : c.freeShipping && Number(c.value) === 0
             ? 'Free delivery'
             : c.type === 'PERCENTAGE'
               ? `${Number(c.value)}% off`
@@ -68,6 +72,8 @@ export const GET = withErrorHandling(async () => {
         minOrderPaise: minPaise,
         /** Short of the minimum spend; 0 when it can be used right now. */
         shortfallPaise: Math.max(0, minPaise - subtotalPaise),
+        autoApply: c.autoApply,
+        requiresCompletedOrders: c.minCompletedOrders,
       };
     })
     .sort((a, b) => a.shortfallPaise - b.shortfallPaise);

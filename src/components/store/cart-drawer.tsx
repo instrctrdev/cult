@@ -194,19 +194,19 @@ export function CartDrawer({ open, onOpenChange }: { open: boolean; onOpenChange
               {pricing?.coupon ? (
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-success">{pricing.coupon.code} applied</p>
+                    <p className="text-sm font-medium text-success">{pricing.coupon.code} {pricing.coupon.automatic ? 'automatically applied' : 'applied'}</p>
                     <p className="text-xs text-muted">
                       You saved {formatPaise(pricing.coupon.discountPaise)}
                     </p>
                   </div>
-                  <button
+                  {!pricing.coupon.automatic && <button
                     type="button"
                     onClick={() => removeCoupon.mutate()}
                     className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-faint hover:bg-surface hover:text-ink"
                     aria-label="Remove coupon"
                   >
                     <X className="h-4 w-4" aria-hidden />
-                  </button>
+                  </button>}
                 </div>
               ) : (
                 <form

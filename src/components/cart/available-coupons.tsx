@@ -40,7 +40,9 @@ export function AvailableCoupons({
     return () => { alive = false; };
   }, [appliedCode]);
 
-  if (offers.length === 0) return null;
+  // Once a code is attached the customer must remove it before choosing a
+  // different one. This mirrors the server-side one-offer-per-cart invariant.
+  if (offers.length === 0 || appliedCode) return null;
 
   // A wall of codes is noise. The usable ones come first from the server, so
   // the first few are the ones worth acting on; the rest stay one tap away.

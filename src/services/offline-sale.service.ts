@@ -57,6 +57,7 @@ export async function quoteOfflineSale(input: OfflineSaleInput) {
     });
     const now = new Date();
     if (!coupon || (coupon.startsAt && coupon.startsAt > now) || (coupon.expiresAt && coupon.expiresAt < now) ||
+      coupon.offerType !== 'STANDARD' || coupon.minCompletedOrders !== null ||
       coupon.firstOrderOnly || coupon.customers.length || coupon.freeShipping ||
       (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit)) {
       throw new AppError('COUPON_INVALID', 'This coupon cannot be used for a walk-in sale.');
@@ -123,6 +124,7 @@ export async function createOfflineSale(input: OfflineSaleInput, cashierId: stri
         });
         const now = new Date();
         if (!coupon || (coupon.startsAt && coupon.startsAt > now) || (coupon.expiresAt && coupon.expiresAt < now) ||
+          coupon.offerType !== 'STANDARD' || coupon.minCompletedOrders !== null ||
           coupon.firstOrderOnly || coupon.customers.length || coupon.freeShipping) {
           throw new AppError('COUPON_INVALID', 'This coupon cannot be used for a walk-in sale.');
         }

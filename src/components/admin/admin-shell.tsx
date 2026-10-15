@@ -27,7 +27,7 @@ const NAV: NavItem[] = [
   { href: '/admin/inventory', label: 'Inventory', Icon: Boxes, permission: 'inventory.read' },
   { href: '/admin/categories', label: 'Categories', Icon: Tags, permission: 'categories.read' },
   { href: '/admin/customers', label: 'Online customers', Icon: Users, permission: 'customers.read' },
-  { href: '/admin/coupons', label: 'Coupons', Icon: Banknote, permission: 'coupons.read' },
+  { href: '/admin/coupons', label: 'Offers & coupons', Icon: Banknote, permission: 'coupons.read' },
   { href: '/admin/homepage', label: 'Homepage', Icon: LayoutTemplate, permission: 'banners.read' },
   { href: '/admin/banners', label: 'Banners', Icon: ImageIcon, permission: 'banners.read' },
   { href: '/admin/reviews', label: 'Reviews', Icon: Star, permission: 'reviews.read' },

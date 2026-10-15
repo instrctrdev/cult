@@ -173,17 +173,17 @@ export function CartPageClient() {
             {p.coupon ? (
               <div className="mb-4 flex items-center justify-between gap-2 rounded-md bg-success/10 p-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-success">{p.coupon.code}</p>
+                  <p className="text-sm font-medium text-success">{p.coupon.code}{p.coupon.automatic ? ' · Automatically applied' : ''}</p>
                   <p className="text-xs text-success/80">You saved {formatPaise(p.coupon.discountPaise)}</p>
                 </div>
-                <button
+                {!p.coupon.automatic && <button
                   type="button"
                   onClick={() => removeCoupon.mutate()}
                   aria-label="Remove coupon"
                   className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-success/10"
                 >
                   <X className="h-4 w-4 text-success" aria-hidden />
-                </button>
+                </button>}
               </div>
             ) : (
               <form

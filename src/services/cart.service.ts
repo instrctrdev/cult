@@ -242,11 +242,15 @@ export const CartService = {
   async applyCoupon(userId: string | null, code: string): Promise<CartDTO> {
     const cart = await this.resolveCart(userId, false);
     if (!cart || cart.items.length === 0) throw badRequest('Add something to your bag first.');
+    const requestedCode = code.trim().toUpperCase();
+    if (cart.coupon && cart.coupon.code !== requestedCode) {
+      throw badRequest(`Remove ${cart.coupon.code} before applying another offer.`);
+    }
 
     const dto = await this.serialize(cart);
     const { CouponService } = await import('./coupon.service');
     const evaluation = await CouponService.evaluate({
-      code,
+      code: requestedCode,
       userId,
       lines: cart.items.map((i) => {
         const line = dto.lines.find((l) => l.id === i.id);
@@ -254,6 +258,8 @@ export const CartService = {
           productId: i.productId,
           categoryIds: i.product.categories.map((c) => c.categoryId),
           subtotalPaise: line?.lineTotalPaise ?? 0,
+          unitPricePaise: line?.unitPricePaise ?? 0,
+          quantity: line?.quantity ?? 0,
         };
       }),
     });

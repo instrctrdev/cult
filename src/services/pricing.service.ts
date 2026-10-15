@@ -57,11 +57,15 @@ export async function quote(input: QuoteInput): Promise<Quote> {
   let coupon: CouponEvaluation | null = null;
   let couponError: string | null = null;
 
+  // Offers never stack. An explicitly attached code is the sole promotion;
+  // automatic offers are considered only when the cart has no code at all.
   if (input.couponCode && subtotal > 0) {
     const ctx: CouponLineContext[] = input.lines.map((l, i) => ({
       productId: l.productId,
       categoryIds: l.categoryIds,
       subtotalPaise: lineSubtotals[i],
+      unitPricePaise: l.unitPricePaise,
+      quantity: l.quantity,
     }));
     try {
       coupon = await CouponService.evaluate({
@@ -73,10 +77,18 @@ export async function quote(input: QuoteInput): Promise<Quote> {
       // An invalid coupon must never block pricing — it is reported and dropped.
       couponError = err instanceof Error ? err.message : 'This coupon could not be applied.';
     }
+  } else if (subtotal > 0) {
+    coupon = await CouponService.evaluateAutomatic({
+      lines: input.lines.map((l, i) => ({
+        productId: l.productId, categoryIds: l.categoryIds,
+        subtotalPaise: lineSubtotals[i], unitPricePaise: l.unitPricePaise, quantity: l.quantity,
+      })),
+      userId: input.userId,
+    });
   }
 
   const discount = coupon?.discountPaise ?? 0;
-  const lineDiscounts = apportion(discount, lineSubtotals);
+  const lineDiscounts = coupon?.lineDiscounts ?? apportion(discount, lineSubtotals);
 
   // ── Shipping ────────────────────────────────────────────────────────────
   // The threshold is tested against the post-discount total, so a coupon
@@ -141,6 +153,7 @@ export async function quote(input: QuoteInput): Promise<Quote> {
           description: coupon.description,
           discountPaise: coupon.discountPaise,
           freeShipping: coupon.freeShipping,
+          automatic: coupon.autoApply,
         }
       : null,
   };

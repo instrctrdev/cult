@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { CouponManager } from '@/components/admin/coupon-manager';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Coupons' };
+export const metadata: Metadata = { title: 'Offers & coupons' };
 
 export default async function AdminCouponsPage() {
   await requirePermission('coupons.read');
@@ -28,9 +28,10 @@ export default async function AdminCouponsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-serif text-2xl">Coupons</h1>
+        <h1 className="font-serif text-2xl">Offers & coupons</h1>
         <p className="mt-1 text-sm text-muted">
-          Every rule here is enforced server-side at checkout — a code cannot be applied by editing the page.
+          Create festival bundles, Buy X Get Y deals, loyalty rewards, and ordinary coupon discounts. Every rule is enforced server-side at checkout.
+          {' '}Offers never stack: one cart and order can use only one offer at a time.
         </p>
       </header>
 
@@ -43,6 +44,7 @@ export default async function AdminCouponsPage() {
           code: c.code,
           description: c.description,
           type: c.type,
+          offerType: c.offerType,
           value: Number(c.value),
           minOrderAmount: c.minOrderAmount ? Number(c.minOrderAmount) : null,
           maxDiscount: c.maxDiscount ? Number(c.maxDiscount) : null,
@@ -55,6 +57,11 @@ export default async function AdminCouponsPage() {
           appliesToSubset: c.appliesToSubset,
           freeShipping: c.freeShipping,
           firstOrderOnly: c.firstOrderOnly,
+          autoApply: c.autoApply,
+          buyQuantity: c.buyQuantity,
+          getQuantity: c.getQuantity,
+          bundleQuantity: c.bundleQuantity,
+          minCompletedOrders: c.minCompletedOrders,
           productIds: c.products.map((p) => p.id),
           categoryIds: c.categories.map((x) => x.id),
         }))}

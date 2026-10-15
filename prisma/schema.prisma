@@ -697,11 +697,18 @@ enum DiscountType {
   FIXED
 }
 
+enum OfferType {
+  STANDARD
+  BUY_X_GET_Y
+  BUNDLE_PRICE
+}
+
 model Coupon {
   id              String       @id @default(cuid())
   code            String       @unique(length: 64)
   description     String?      @db.VarChar(255)
   type            DiscountType
+  offerType       OfferType     @default(STANDARD)
   /// Percent (0-100) when PERCENTAGE, rupee amount when FIXED.
   value           Decimal      @db.Decimal(10, 2)
   minOrderAmount  Decimal?     @db.Decimal(10, 2)
@@ -719,6 +726,15 @@ model Coupon {
   appliesToSubset Boolean      @default(false)
   freeShipping    Boolean      @default(false)
   firstOrderOnly  Boolean      @default(false)
+  /// Automatically considered when no coupon code is attached to the cart.
+  autoApply       Boolean      @default(false)
+  /// BUY_X_GET_Y configuration. The cheapest qualifying units are free.
+  buyQuantity     Int?
+  getQuantity     Int?
+  /// BUNDLE_PRICE configuration; `value` is the bundle price in rupees.
+  bundleQuantity  Int?
+  /// Number of delivered orders required before this offer can be used.
+  minCompletedOrders Int?
   deletedAt       DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -731,6 +747,7 @@ model Coupon {
   orders     Order[]
 
   @@index([isActive, expiresAt])
+  @@index([autoApply, isActive, expiresAt])
 }
 
 model CouponUsage {

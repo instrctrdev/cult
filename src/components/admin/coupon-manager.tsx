@@ -15,6 +15,7 @@ export interface AdminCoupon {
   code: string;
   description: string | null;
   type: 'PERCENTAGE' | 'FIXED';
+  offerType: 'STANDARD' | 'BUY_X_GET_Y' | 'BUNDLE_PRICE';
   value: number;
   minOrderAmount: number | null;
   maxDiscount: number | null;
@@ -27,6 +28,11 @@ export interface AdminCoupon {
   appliesToSubset: boolean;
   freeShipping: boolean;
   firstOrderOnly: boolean;
+  autoApply: boolean;
+  buyQuantity: number | null;
+  getQuantity: number | null;
+  bundleQuantity: number | null;
+  minCompletedOrders: number | null;
   productIds: string[];
   categoryIds: string[];
 }
@@ -48,13 +54,13 @@ export function CouponManager({
       {canWrite && (
         <Button onClick={() => setEditing('new')}>
           <Plus className="h-4 w-4" aria-hidden />
-          New coupon
+          New offer
         </Button>
       )}
 
       {coupons.length === 0 ? (
         <p className="rounded-lg border border-line p-10 text-center text-sm text-muted">
-          No coupons yet.
+          No offers yet.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line">
@@ -91,7 +97,11 @@ export function CouponManager({
                       )}
                     </td>
                     <td className="p-3">
-                      {coupon.type === 'PERCENTAGE' ? `${coupon.value}%` : `Rs. ${coupon.value}`}
+                      {coupon.offerType === 'BUY_X_GET_Y'
+                        ? `Buy ${coupon.buyQuantity}, get ${coupon.getQuantity} free`
+                        : coupon.offerType === 'BUNDLE_PRICE'
+                          ? `${coupon.bundleQuantity} for Rs. ${coupon.value}`
+                          : coupon.type === 'PERCENTAGE' ? `${coupon.value}%` : `Rs. ${coupon.value}`}
                       {coupon.maxDiscount && (
                         <span className="block text-2xs text-faint">max Rs. {coupon.maxDiscount}</span>
                       )}
@@ -102,6 +112,8 @@ export function CouponManager({
                         coupon.freeShipping ? 'free shipping' : null,
                         coupon.firstOrderOnly ? 'first order' : null,
                         coupon.appliesToSubset ? 'limited items' : null,
+                        coupon.minCompletedOrders ? `${coupon.minCompletedOrders}+ delivered orders` : null,
+                        coupon.autoApply ? 'automatic' : null,
                       ].filter(Boolean).join(' · ') || '—'}
                     </td>
                     <td className="p-3 tabular-nums">
@@ -151,7 +163,7 @@ export function CouponManager({
       <Sheet open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
         <SheetContent
           side="bottom"
-          title={editing === 'new' ? 'New coupon' : 'Edit coupon'}
+          title={editing === 'new' ? 'New offer' : 'Edit offer'}
           className="lg:inset-y-0 lg:right-0 lg:left-auto lg:max-h-none lg:max-w-md lg:rounded-none"
         >
           {editing && (
@@ -188,6 +200,7 @@ function CouponForm({
     code: string;
     description: string;
     type: 'PERCENTAGE' | 'FIXED';
+    offerType: 'STANDARD' | 'BUY_X_GET_Y' | 'BUNDLE_PRICE';
     value: number | string;
     minOrderAmount: number | string;
     maxDiscount: number | string;
@@ -199,6 +212,11 @@ function CouponForm({
     appliesToSubset: boolean;
     freeShipping: boolean;
     firstOrderOnly: boolean;
+    autoApply: boolean;
+    buyQuantity: number | string;
+    getQuantity: number | string;
+    bundleQuantity: number | string;
+    minCompletedOrders: number | string;
   };
 
   const form = useForm<CouponFormValues>({
@@ -206,21 +224,28 @@ function CouponForm({
       code: coupon?.code ?? '',
       description: coupon?.description ?? '',
       type: coupon?.type ?? 'PERCENTAGE',
+      offerType: coupon?.offerType ?? 'STANDARD',
       value: coupon?.value ?? 10,
       minOrderAmount: coupon?.minOrderAmount ?? '',
       maxDiscount: coupon?.maxDiscount ?? '',
       usageLimit: coupon?.usageLimit ?? '',
-      perUserLimit: coupon?.perUserLimit ?? 1,
+      perUserLimit: coupon?.perUserLimit ?? '',
       startsAt: coupon?.startsAt ?? '',
       expiresAt: coupon?.expiresAt ?? '',
       isActive: coupon?.isActive ?? true,
       appliesToSubset: coupon?.appliesToSubset ?? false,
       freeShipping: coupon?.freeShipping ?? false,
       firstOrderOnly: coupon?.firstOrderOnly ?? false,
+      autoApply: coupon?.autoApply ?? false,
+      buyQuantity: coupon?.buyQuantity ?? 1,
+      getQuantity: coupon?.getQuantity ?? 1,
+      bundleQuantity: coupon?.bundleQuantity ?? 3,
+      minCompletedOrders: coupon?.minCompletedOrders ?? '',
     },
   });
 
   const type = form.watch('type');
+  const offerType = form.watch('offerType');
   const appliesToSubset = form.watch('appliesToSubset');
 
   return (
@@ -233,6 +258,10 @@ function CouponForm({
           maxDiscount: values.maxDiscount === '' ? null : Number(values.maxDiscount),
           usageLimit: values.usageLimit === '' ? null : Number(values.usageLimit),
           perUserLimit: values.perUserLimit === '' ? null : Number(values.perUserLimit),
+          buyQuantity: values.buyQuantity === '' ? null : Number(values.buyQuantity),
+          getQuantity: values.getQuantity === '' ? null : Number(values.getQuantity),
+          bundleQuantity: values.bundleQuantity === '' ? null : Number(values.bundleQuantity),
+          minCompletedOrders: values.minCompletedOrders === '' ? null : Number(values.minCompletedOrders),
           startsAt: values.startsAt || null,
           expiresAt: values.expiresAt || null,
           productIds,
@@ -254,7 +283,7 @@ function CouponForm({
       })}
       className="space-y-4 pb-4"
     >
-      <Field label="Code" htmlFor="cp-code" required hint="Customers type this at checkout.">
+      <Field label="Offer code" htmlFor="cp-code" required hint="Customers type this at checkout unless the offer is automatic.">
         <Input className="font-mono uppercase" {...form.register('code', { required: true })} />
       </Field>
 
@@ -262,7 +291,15 @@ function CouponForm({
         <Textarea rows={2} {...form.register('description')} />
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <Field label="Offer type" htmlFor="cp-offer-type">
+        <select id="cp-offer-type" className="h-12 w-full rounded-md border border-ink/15 bg-bg px-3" {...form.register('offerType')}>
+          <option value="STANDARD">Percentage / fixed discount</option>
+          <option value="BUY_X_GET_Y">Buy X, get Y free</option>
+          <option value="BUNDLE_PRICE">Any X items for a fixed price</option>
+        </select>
+      </Field>
+
+      {offerType === 'STANDARD' && <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Discount type" htmlFor="cp-type">
           <select id="cp-type" className="h-12 w-full rounded-md border border-ink/15 bg-bg px-3" {...form.register('type')}>
             <option value="PERCENTAGE">Percentage</option>
@@ -272,18 +309,36 @@ function CouponForm({
         <Field label={type === 'PERCENTAGE' ? 'Percent off' : 'Amount off (Rs.)'} htmlFor="cp-value" required>
           <Input type="number" step="0.01" min="0" max={type === 'PERCENTAGE' ? 100 : undefined} {...form.register('value')} />
         </Field>
-      </div>
+      </div>}
+
+      {offerType === 'BUY_X_GET_Y' && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Customer buys" htmlFor="cp-buy"><Input type="number" min="1" max="20" {...form.register('buyQuantity')} /></Field>
+          <Field label="Customer gets free" htmlFor="cp-get"><Input type="number" min="1" max="20" {...form.register('getQuantity')} /></Field>
+        </div>
+      )}
+
+      {offerType === 'BUNDLE_PRICE' && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Number of items" htmlFor="cp-bundle-qty"><Input type="number" min="2" max="20" {...form.register('bundleQuantity')} /></Field>
+          <Field label="Bundle price (Rs.)" htmlFor="cp-value"><Input type="number" min="0.01" step="0.01" {...form.register('value')} /></Field>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Minimum order (Rs.)" htmlFor="cp-min">
           <Input type="number" min="0" {...form.register('minOrderAmount')} />
         </Field>
-        {type === 'PERCENTAGE' && (
+        {offerType === 'STANDARD' && type === 'PERCENTAGE' && (
           <Field label="Maximum discount (Rs.)" htmlFor="cp-max">
             <Input type="number" min="0" {...form.register('maxDiscount')} />
           </Field>
         )}
       </div>
+
+      <Field label="Minimum delivered purchases" htmlFor="cp-min-orders" hint="Example: enter 4 for customers who purchased more than 3 times. Blank = everyone.">
+        <Input type="number" min="1" {...form.register('minCompletedOrders')} />
+      </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Total uses" htmlFor="cp-limit" hint="Blank = unlimited">
@@ -308,6 +363,7 @@ function CouponForm({
           { key: 'isActive' as const, label: 'Active' },
           { key: 'freeShipping' as const, label: 'Also gives free shipping' },
           { key: 'firstOrderOnly' as const, label: 'First order only' },
+          { key: 'autoApply' as const, label: 'Apply automatically when eligible' },
           { key: 'appliesToSubset' as const, label: 'Limit to selected products / collections' },
         ].map(({ key, label }) => (
           <label key={key} className="flex cursor-pointer items-center gap-2.5 text-sm">
@@ -362,7 +418,7 @@ function CouponForm({
       )}
 
       <Button type="submit" size="lg" full loading={form.formState.isSubmitting}>
-        {coupon ? 'Save coupon' : 'Create coupon'}
+        {coupon ? 'Save offer' : 'Create offer'}
       </Button>
     </form>
   );

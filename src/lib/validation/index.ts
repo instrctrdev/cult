@@ -229,6 +229,7 @@ export const adminCouponSchema = z
     code: z.string().trim().min(2).max(64).regex(/^[A-Za-z0-9_-]+$/).transform((v) => v.toUpperCase()),
     description: z.string().trim().max(255).optional().nullable(),
     type: z.enum(['PERCENTAGE', 'FIXED']),
+    offerType: z.enum(['STANDARD', 'BUY_X_GET_Y', 'BUNDLE_PRICE']).default('STANDARD'),
     value: z.coerce.number().min(0).max(1_000_000),
     minOrderAmount: z.coerce.number().min(0).optional().nullable(),
     maxDiscount: z.coerce.number().min(0).optional().nullable(),
@@ -240,12 +241,33 @@ export const adminCouponSchema = z
     appliesToSubset: z.boolean().default(false),
     freeShipping: z.boolean().default(false),
     firstOrderOnly: z.boolean().default(false),
+    autoApply: z.boolean().default(false),
+    buyQuantity: z.coerce.number().int().min(1).max(20).optional().nullable(),
+    getQuantity: z.coerce.number().int().min(1).max(20).optional().nullable(),
+    bundleQuantity: z.coerce.number().int().min(2).max(20).optional().nullable(),
+    minCompletedOrders: z.coerce.number().int().min(1).max(10000).optional().nullable(),
     productIds: z.array(cuidSchema).default([]),
     categoryIds: z.array(cuidSchema).default([]),
   })
-  .refine((v) => v.type !== 'PERCENTAGE' || v.value <= 100, {
+  .refine((v) => v.offerType !== 'STANDARD' || v.type !== 'PERCENTAGE' || v.value <= 100, {
     message: 'A percentage discount cannot exceed 100%.',
     path: ['value'],
+  })
+  .refine((v) => v.offerType !== 'BUY_X_GET_Y' || (v.buyQuantity && v.getQuantity), {
+    message: 'Enter both the buy and free quantities.',
+    path: ['buyQuantity'],
+  })
+  .refine((v) => v.offerType !== 'BUNDLE_PRICE' || (v.bundleQuantity && v.value > 0), {
+    message: 'Enter a bundle quantity and price.',
+    path: ['bundleQuantity'],
+  })
+  .refine((v) => !(v.firstOrderOnly && v.minCompletedOrders), {
+    message: 'First-order and returning-customer rules cannot be combined.',
+    path: ['minCompletedOrders'],
+  })
+  .refine((v) => !v.appliesToSubset || v.productIds.length > 0 || v.categoryIds.length > 0, {
+    message: 'Select at least one product or collection.',
+    path: ['productIds'],
   })
   .refine((v) => !v.startsAt || !v.expiresAt || v.expiresAt > v.startsAt, {
     message: 'The end date must be after the start date.',

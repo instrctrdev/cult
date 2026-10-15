@@ -176,6 +176,7 @@ export interface AppliedCoupon {
   description: string | null;
   discountPaise: Paise;
   freeShipping: boolean;
+  automatic: boolean;
 }
 
 export interface CartDTO {
