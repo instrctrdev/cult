@@ -7,15 +7,12 @@ import { ListingPage } from '@/components/shop/listing-page';
 import { BreadcrumbJsonLd } from '@/components/seo/json-ld';
 import { BRAND } from '@/lib/brand';
 
-export const revalidate = 300;
+// Dynamic collections avoid Hostinger's unreliable on-demand ISR filesystem
+// cache. Product data is read fresh and no runtime page artifact must be saved.
+export const dynamic = 'force-dynamic';
 
 type Params = Promise<{ slug: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-// Generate and cache collection pages on first request. Returning an empty
-// list keeps deploys independent of the production database connection while
-// `dynamicParams` (true by default) still serves every live collection.
-export function generateStaticParams() { return []; }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;

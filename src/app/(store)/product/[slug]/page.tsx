@@ -16,13 +16,12 @@ import { ProductViewTracker } from '@/components/product/product-view-tracker';
 import { BreadcrumbJsonLd, ProductJsonLd } from '@/components/seo/json-ld';
 import { BRAND } from '@/lib/brand';
 
-export const revalidate = 300;
+// Hostinger's standalone runtime cannot reliably persist on-demand ISR pages.
+// Render product detail pages per request; the underlying queries remain small
+// and this avoids a filesystem cache write turning a healthy product into 500.
+export const dynamic = 'force-dynamic';
 
 type Params = Promise<{ slug: string }>;
-
-// Generate and cache product pages on first request so a temporary database
-// outage during deployment cannot fail the entire application build.
-export function generateStaticParams() { return []; }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
