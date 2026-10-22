@@ -15,7 +15,15 @@ const nextConfig = {
     imageSizes: [64, 96, 128, 192, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
-  experimental: { optimizePackageImports: ['lucide-react', 'framer-motion'] },
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
+    // Hostinger's build container has a strict process/thread quota. Next.js
+    // otherwise starts four page-data workers, and each worker loads Prisma's
+    // multithreaded query engine, exhausting that quota during page collection.
+    cpus: 1,
+    staticGenerationMaxConcurrency: 1,
+    staticGenerationMinPagesPerWorker: 1000,
+  },
   // Next's dev server blocks cross-origin requests by default (anti DNS-rebinding).
   // Needed only for `next dev` tunnelled through ngrok/similar — has no effect
   // on `next build`/`next start`, so it's safe to leave in permanently.
