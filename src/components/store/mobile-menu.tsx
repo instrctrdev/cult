@@ -19,7 +19,7 @@ export function MobileMenu({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" title="Menu" hideTitle className="max-w-[86vw] sm:max-w-sm">
-        <CultMark className="text-[2rem]" />
+        <CultMark inverted className="text-[2rem]" />
         <p className="mt-1 text-2xs uppercase tracking-luxe text-muted">{BRAND.tagline}</p>
 
         <nav className="mt-7" aria-label="Mobile">

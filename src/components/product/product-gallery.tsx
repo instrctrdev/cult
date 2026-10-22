@@ -123,7 +123,7 @@ export function ProductGallery({
                           aria-hidden
                         />
                       )}
-                      <span className="absolute inset-0 grid place-items-center bg-ink/25" aria-hidden>
+                      <span className="absolute inset-0 grid place-items-center bg-black/25" aria-hidden>
                         <Play className="h-4 w-4 fill-white text-white" />
                       </span>
                     </>

@@ -92,7 +92,7 @@ export function SiteHeader({
             aria-label={`${BRAND.name} home`}
             className="absolute left-1/2 -translate-x-1/2 transition-all duration-300"
           >
-            <CultMark className={cn('transition-all duration-300', scrolled ? 'text-[1.25rem] lg:text-[1.45rem]' : 'text-[1.35rem] lg:text-[1.7rem]')} />
+            <CultMark inverted className={cn('transition-all duration-300', scrolled ? 'text-[1.25rem] lg:text-[1.45rem]' : 'text-[1.35rem] lg:text-[1.7rem]')} />
           </Link>
 
         </div>

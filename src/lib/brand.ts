@@ -34,12 +34,12 @@ export const BRAND = {
 
 /** CULT colour tokens. Mirrors the CSS custom properties in globals.css. */
 export const BRAND_COLORS = {
-  background: '#ffffff',
-  surface: '#f3f3f1',
-  surfaceSunken: '#e8e8e6',
-  ink: '#101010',
+  background: '#0c0c0d',
+  surface: '#171719',
+  surfaceSunken: '#222225',
+  ink: '#f5f5f4',
   gold: '#d4261e',
-  success: '#2a7a4b',
+  success: '#5bbe80',
 } as const;
 
 /** Footer link groups, matching the live site's information architecture. */

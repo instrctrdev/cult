@@ -52,7 +52,7 @@ export function HeroSection({ banner }: { banner: BannerDTO | null }) {
               {banner.ctaLabel && banner.ctaHref && (
                 <Link
                   href={banner.ctaHref}
-                  className="mt-7 inline-flex h-13 items-center rounded-md bg-white px-8 text-xs font-medium uppercase tracking-luxe text-ink transition-colors hover:bg-white/90"
+                  className="mt-7 inline-flex h-13 items-center rounded-md bg-white px-8 text-xs font-medium uppercase tracking-luxe text-[#101010] transition-colors hover:bg-white/90"
                 >
                   {banner.ctaLabel} →
                 </Link>

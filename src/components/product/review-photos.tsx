@@ -69,7 +69,7 @@ export function ReviewMedia({ media, authorName }: { media: ReviewMediaItem[]; a
                 className="object-cover transition-transform duration-200 group-hover:scale-105"
               />
               <span
-                className="absolute inset-0 grid place-items-center bg-ink/0 text-white opacity-0 transition-all group-hover:bg-ink/30 group-hover:opacity-100"
+                className="absolute inset-0 grid place-items-center bg-black/0 text-white opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100"
                 aria-hidden
               >
                 <Expand className="h-4 w-4" />

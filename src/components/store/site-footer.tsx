@@ -32,7 +32,7 @@ export async function SiteFooter() {
       <div className="container py-14 lg:py-16">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-4">
-            <CultMark className="text-[1.75rem]" />
+            <CultMark inverted className="text-[1.75rem]" />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted text-pretty">{BRAND.description}</p>
             <div className="mt-5 space-y-2.5">
               {BRAND.instagram && <a

@@ -2,34 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/**
- * CULT design tokens.
- *
- * Values come from the CULT design system. The theme's
- * own variable names are legacy — a dark theme was recoloured to light, so
- * `--dark` there holds an off-white. Semantic names are used here instead.
- *
- *   #faf9f7  page background     (theme --dark)
- *   #f4f1ec  raised surface      (theme --dark2)
- *   #ede9e2  sunken surface      (theme --dark3)
- *   #1a1a1a  ink                 (theme --cream)
- *   #8b6f47  accent gold         (theme --gold)
- *   #7a6140  accent gold, text    (darkened for WCAG AA contrast)
- *   #2a7a4b  free-shipping green (theme inline)
- */
+/** CULT's dark storefront palette. Surfaces remain distinct behind imagery. */
 @layer base {
   :root {
-    --bg: 255 255 255;
-    --surface: 243 243 241;
-    --sunken: 232 232 230;
-    --ink: 16 16 16;
+    color-scheme: dark;
+    --bg: 12 12 13;
+    --surface: 23 23 25;
+    --sunken: 34 34 37;
+    --ink: 245 245 244;
     --gold: 212 38 30;
-    /* Brand gold is 4.47:1 on the page background — just under AA for text.
-       `--gold-ink` is the same hue darkened to 5.5:1 and is used wherever gold
-       carries words; `--gold` stays exact for fills, badges and swatches. */
-    --gold-ink: 178 23 19;
-    --success: 42 122 75;
-    --danger: 176 46 46;
+    --gold-ink: 255 115 106;
+    --success: 91 190 128;
+    --danger: 239 86 77;
 
     --header-h: 60px;
     --bottom-nav-h: 0px;
@@ -147,11 +131,11 @@
   }
 }
 
-/* The control room borrows CULT's ink and red while keeping data screens calm. */
+/* The control room uses the same dark surfaces as the storefront. */
 .admin-panel {
-  --bg: 247 247 245;
-  --surface: 255 255 255;
-  --sunken: 237 237 234;
+  --bg: 12 12 13;
+  --surface: 23 23 25;
+  --sunken: 34 34 37;
   color: rgb(var(--ink));
   font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
@@ -197,16 +181,33 @@
 .admin-panel .figure { font-variant-numeric: lining-nums tabular-nums; }
 
 .admin-panel :where(section.rounded-lg.border-line, a.group.rounded-lg.border-line, div.overflow-x-auto.rounded-lg.border-line) {
-  background: white;
-  box-shadow: 0 2px 12px rgb(16 16 16 / 0.025);
+  background: rgb(var(--surface));
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.2);
 }
 
 .admin-panel :where(table) { font-variant-numeric: tabular-nums; }
-.admin-panel :where(thead) { background: #f3f3f1; }
-.admin-panel :where(input, select, textarea) { background-color: white; }
+.admin-panel :where(thead) { background: rgb(var(--sunken)); }
+.admin-panel :where(input, select, textarea) { background-color: rgb(var(--bg)); color: rgb(var(--ink)); }
 .admin-panel :where(input, select, textarea):focus-visible {
   border-color: rgb(var(--gold));
   --tw-ring-color: rgb(var(--gold) / 0.28);
+}
+
+.admin-panel .bg-white { background-color: rgb(var(--surface)); }
+.admin-panel .bg-white\/95 { background-color: rgb(var(--surface) / 0.95); }
+.admin-panel .bg-ink.text-white { color: rgb(var(--bg)); }
+.admin-panel .product-label,
+.admin-panel .label-sheet .product-label { background: white; color: black; }
+.admin-panel .receipt-paper,
+.admin-panel .paper-document .bg-white { background: white; color: black; }
+
+/* Invoices and labels keep black type on white paper, including PDF output. */
+.paper-document {
+  --bg: 255 255 255;
+  --surface: 243 243 241;
+  --sunken: 232 232 230;
+  --ink: 16 16 16;
+  color-scheme: light;
 }
 
 @keyframes announcement-scroll {
@@ -217,6 +218,99 @@
 .announcement-bar {
   background: linear-gradient(90deg, #b21713 0%, #d4261e 50%, #b21713 100%);
   box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.08);
+}
+
+/* The campaign follows the reference's full-bleed editorial rhythm. */
+.cult-hero {
+  height: min(88svh, 920px);
+  min-height: 570px;
+}
+
+.cult-hero-shade {
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.36), rgb(0 0 0 / 0.52) 48%, rgb(0 0 0 / 0.72));
+}
+
+.cult-hero h1 { text-shadow: 0 4px 35px rgb(0 0 0 / 0.38); }
+
+.cult-outline-button {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  border: 1px solid rgb(255 255 255 / 0.86);
+  padding: 0 23px;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition: background-color 200ms, color 200ms;
+}
+
+.cult-outline-button:hover { background: white; color: #101010; }
+
+.cult-collections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cult-collection { display: block; height: clamp(560px, 55vw, 860px); }
+.cult-collection + .cult-collection { border-left: 1px solid rgb(255 255 255 / 0.1); }
+
+.cult-product-rail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x mandatory;
+  padding-inline: max(16px, calc((100vw - 1440px) / 2 + 40px));
+  -webkit-overflow-scrolling: touch;
+}
+
+.cult-product {
+  width: clamp(230px, 26vw, 390px);
+  aspect-ratio: 3 / 4;
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.cult-look-stage { height: clamp(460px, 54vw, 680px); }
+.cult-look-card {
+  top: 50%;
+  left: 50%;
+  height: 84%;
+  width: min(33vw, 410px);
+  border: 1px solid rgb(255 255 255 / 0.25);
+  box-shadow: 0 25px 35px rgb(0 0 0 / 0.3);
+  transition: transform 500ms ease, opacity 500ms ease, z-index 500ms;
+}
+.cult-look-card[data-position='active'] { z-index: 3; transform: translate(-50%, -50%) scale(1.07); }
+.cult-look-card[data-position='left'] { z-index: 2; transform: translate(-115%, -50%) scale(0.84); opacity: 0.75; }
+.cult-look-card[data-position='right'] { z-index: 2; transform: translate(15%, -50%) scale(0.84); opacity: 0.75; }
+.cult-look-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  display: grid;
+  height: 46px;
+  width: 46px;
+  transform: translateY(-50%);
+  place-items: center;
+  border: 1px solid rgb(var(--ink) / 0.45);
+  background: rgb(var(--bg) / 0.85);
+  color: rgb(var(--ink));
+}
+
+@media (max-width: 767px) {
+  .cult-hero { height: 84svh; min-height: 580px; }
+  .cult-hero-shade { background: linear-gradient(180deg, rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.38) 42%, rgb(0 0 0 / 0.74)); }
+  .cult-collections { grid-template-columns: 1fr; }
+  .cult-collection { height: 118vw; max-height: 580px; min-height: 420px; }
+  .cult-collection + .cult-collection { border-left: 0; border-top: 1px solid rgb(255 255 255 / 0.1); }
+  .cult-product-rail { gap: 12px; }
+  .cult-product { width: 72vw; max-width: 330px; }
+  .cult-look-stage { height: 490px; }
+  .cult-look-card { height: 82%; width: 72vw; }
+  .cult-look-card[data-position='left'] { transform: translate(-112%, -50%) scale(0.83); }
+  .cult-look-card[data-position='right'] { transform: translate(12%, -50%) scale(0.83); }
+  .cult-look-arrow { height: 38px; width: 38px; }
 }
 
 .announcement-track {

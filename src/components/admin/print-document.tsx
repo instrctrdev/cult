@@ -29,7 +29,7 @@ export function PrintDocument({
   }, [title]);
 
   return (
-    <div className="min-h-dvh bg-ink/5 py-6 print:bg-white print:py-0">
+    <div className="paper-document min-h-dvh bg-ink/5 py-6 print:bg-white print:py-0">
       <div className="print-hide mx-auto mb-4 flex max-w-[820px] items-center justify-between px-4">
         <button
           type="button"

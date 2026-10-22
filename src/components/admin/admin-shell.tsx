@@ -145,7 +145,7 @@ export function AdminShell({
       )}
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur lg:hidden">
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
@@ -159,7 +159,7 @@ export function AdminShell({
           <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide2 text-muted">{currentSection}</span>
         </header>
 
-        <header className="hidden h-16 items-center justify-between border-b border-line bg-white px-8 lg:flex">
+        <header className="hidden h-16 items-center justify-between border-b border-line bg-surface px-8 lg:flex">
           <div className="flex items-center gap-3 text-xs font-medium">
             <span className="text-faint">Control room</span>
             <span className="text-gold">/</span>

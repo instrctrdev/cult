@@ -241,7 +241,7 @@ export function ImageZoom({
   const caption = image.caption ?? null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-ink" role="dialog" aria-modal="true" aria-label={label ?? `${productName} images`}>
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label={label ?? `${productName} images`}>
       <div className="safe-top flex items-center justify-between px-4 py-3">
         <p className="text-xs text-white/70 tabular-nums">
           {index + 1} / {images.length}

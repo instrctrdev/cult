@@ -20,12 +20,12 @@ The active values are defined in `src/lib/brand.ts` and `src/app/globals.css`.
 
 | Role | Value |
 |---|---|
-| Background | `#ffffff` |
-| Raised surface | `#f3f3f1` |
-| Sunken surface | `#e8e8e6` |
-| Text | `#101010` |
+| Background | `#0c0c0d` |
+| Raised surface | `#171719` |
+| Sunken surface | `#222225` |
+| Text | `#f5f5f4` |
 | Accent | `#d4261e` |
-| Success | `#2a7a4b` |
+| Success | `#5bbe80` |
 
 The storefront uses Cinzel, Cormorant Garamond, DM Sans, and Dancing Script.
 
