@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import * as React from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { formatPaise } from '@/lib/money';
 import type { ProductCardDTO } from '@/types';
 
@@ -24,14 +24,49 @@ const collections = [
   { title: 'T-Shirts', href: '/category/t-shirts', image: '/images/cult/edit-henley.jpg', alt: 'Model in a relaxed light top' },
 ];
 
+type LookPosition = 'active' | 'left' | 'right' | 'far-left' | 'far-right';
+
+function lookPosition(index: number, activeIndex: number, count: number): LookPosition {
+  const offset = (index - activeIndex + count) % count;
+  if (offset === 0) return 'active';
+  if (offset === 1) return 'right';
+  if (offset === count - 1) return 'left';
+  if (offset === 2) return 'far-right';
+  return 'far-left';
+}
+
 /** Image-led campaign layout, using CULT artwork and live catalogue records. */
-export function CultHome({ slides, bestSellers }: { slides: CultHeroSlide[]; bestSellers: ProductCardDTO[] }) {
+export function CultHome({
+  slides,
+  bestSellers,
+  trendingProducts,
+}: {
+  slides: CultHeroSlide[];
+  bestSellers: ProductCardDTO[];
+  trendingProducts: ProductCardDTO[];
+}) {
   const campaign = slides.find((slide) =>
     slide.desktopImage?.includes('/cult/') || slide.desktopImage?.includes('/home/cult-'),
   );
   const heroDesktop = campaign?.desktopImage ?? '/images/home/cult-hero-desktop.jpg';
   const heroMobile = campaign?.mobileImage ?? '/images/home/cult-hero-mobile.jpg';
-  const [lookIndex, setLookIndex] = React.useState(1);
+  const [lookIndex, setLookIndex] = React.useState(0);
+  const [lookPaused, setLookPaused] = React.useState(false);
+
+  React.useEffect(() => {
+    if (trendingProducts.length < 2 || lookPaused) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const interval = window.setInterval(() => {
+      setLookIndex((current) => (current + 1) % trendingProducts.length);
+    }, 3800);
+
+    return () => window.clearInterval(interval);
+  }, [lookPaused, trendingProducts.length]);
+
+  React.useEffect(() => {
+    setLookIndex((current) => current % Math.max(1, trendingProducts.length));
+  }, [trendingProducts.length]);
 
   return (
     <div className="cult-home bg-bg">
@@ -96,32 +131,68 @@ export function CultHome({ slides, bestSellers }: { slides: CultHeroSlide[]; bes
           </div>
       </section>
 
-      <section className="cult-looks overflow-hidden bg-bg py-16 md:py-24" aria-labelledby="looks-title">
-        <div className="container text-center">
-          <p className="mb-3 text-[11px] uppercase tracking-[0.38em] text-muted">The CULT edit</p>
-          <h2 id="looks-title" className="font-sans text-[clamp(3.3rem,8vw,7.5rem)] font-black uppercase leading-[0.84] tracking-[-0.075em]">Looks for<br />the streets</h2>
-          <p className="mx-auto mt-6 max-w-lg text-sm text-muted md:text-lg">Swipe through pieces built for everyday movement.</p>
-        </div>
-        <div className="cult-look-stage relative mx-auto mt-12 max-w-[1250px] md:mt-16">
-          {collections.map((collection, index) => {
-            const offset = (index - lookIndex + collections.length) % collections.length;
-            const position = offset === 0 ? 'active' : offset === 1 ? 'right' : 'left';
-            return (
-              <Link key={collection.title} href={collection.href} data-position={position} className="cult-look-card group absolute block overflow-hidden bg-sunken" aria-hidden={position !== 'active'} tabIndex={position === 'active' ? 0 : -1}>
-                <Image src={collection.image} alt={collection.alt} fill sizes="(max-width: 767px) 72vw, 34vw" className="object-cover" />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-5 pb-5 pt-16 text-white">
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em]">{collection.title} <ArrowRight size={16} aria-hidden /></span>
-                </div>
-              </Link>
-            );
-          })}
-          <button type="button" onClick={() => setLookIndex((current) => (current + collections.length - 1) % collections.length)} className="cult-look-arrow left-3 md:left-6" aria-label="Previous look"><ChevronLeft size={23} aria-hidden /></button>
-          <button type="button" onClick={() => setLookIndex((current) => (current + 1) % collections.length)} className="cult-look-arrow right-3 md:right-6" aria-label="Next look"><ChevronRight size={23} aria-hidden /></button>
-        </div>
-        <div className="mt-8 flex justify-center gap-2" aria-label="Select a look">
-          {collections.map((collection, index) => <button key={collection.title} type="button" onClick={() => setLookIndex(index)} aria-label={`Show ${collection.title} look`} aria-current={lookIndex === index} className={`h-1.5 rounded-full transition-all ${lookIndex === index ? 'w-8 bg-ink' : 'w-1.5 bg-ink/35'}`} />)}
-        </div>
-      </section>
+      {trendingProducts.length > 0 && (
+        <section className="cult-looks overflow-hidden bg-bg py-16 md:py-24" aria-labelledby="looks-title">
+          <div className="container text-center">
+            <p className="mb-3 text-[11px] uppercase tracking-[0.38em] text-muted">The CULT edit</p>
+            <h2 id="looks-title" className="font-sans text-[clamp(3.3rem,8vw,7.5rem)] font-black uppercase leading-[0.84] tracking-[-0.075em]">Trending<br />right now</h2>
+            <p className="mx-auto mt-6 max-w-lg text-sm text-muted md:text-lg">Five standout pieces, selected in Admin.</p>
+          </div>
+          <div
+            className="cult-look-stage relative mx-auto mt-12 max-w-[1380px] md:mt-16"
+            onMouseEnter={() => setLookPaused(true)}
+            onMouseLeave={() => setLookPaused(false)}
+            onFocusCapture={() => setLookPaused(true)}
+            onBlurCapture={() => setLookPaused(false)}
+          >
+            {trendingProducts.map((product, index) => {
+              const position = lookPosition(index, lookIndex, trendingProducts.length);
+              const photo = product.image ?? product.images[0];
+              const hoverPhoto = product.hoverImage ?? product.images[1];
+              return (
+                <Link
+                  key={product.id}
+                  href={`/product/${product.slug}`}
+                  data-position={position}
+                  className="cult-look-card group absolute block overflow-hidden bg-sunken"
+                  aria-hidden={position !== 'active'}
+                  tabIndex={position === 'active' ? 0 : -1}
+                >
+                  {photo ? (
+                    <Image src={photo.url} alt={photo.alt || product.name} fill sizes="(max-width: 767px) 72vw, 34vw" className="cult-look-image object-cover" />
+                  ) : (
+                    <span className="absolute inset-0 grid place-items-center text-xs uppercase tracking-widest text-muted">Image coming soon</span>
+                  )}
+                  {hoverPhoto && hoverPhoto.id !== photo?.id && (
+                    <Image src={hoverPhoto.url} alt="" fill sizes="(max-width: 767px) 72vw, 34vw" className="cult-look-hover-image object-cover" aria-hidden />
+                  )}
+                  <div className="cult-look-copy absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black via-black/70 to-transparent px-5 pb-5 pt-24 text-white">
+                    <h3 className="truncate font-sans text-sm font-semibold uppercase tracking-[0.09em] md:text-base">{product.name}</h3>
+                    <div className="mt-2 flex items-center justify-between gap-4">
+                      <span className="text-sm">{formatPaise(product.pricePaise)}</span>
+                      <span className="cult-look-cta inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em]">View product <ArrowRight size={15} aria-hidden /></span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+          {trendingProducts.length > 1 && (
+            <div className="mt-8 flex justify-center gap-2" aria-label="Select a trending product">
+              {trendingProducts.map((product, index) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => setLookIndex(index)}
+                  aria-label={`Show ${product.name}`}
+                  aria-current={lookIndex === index}
+                  className={`h-1.5 rounded-full transition-all ${lookIndex === index ? 'w-8 bg-ink' : 'w-1.5 bg-ink/35 hover:bg-ink/70'}`}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

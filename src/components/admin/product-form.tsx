@@ -753,6 +753,7 @@ export function ProductForm({
                 { key: 'isFeatured' as const, label: 'Featured' },
                 { key: 'isNewArrival' as const, label: 'New arrival' },
                 { key: 'isBestSeller' as const, label: 'Best seller' },
+                { key: 'isTrending' as const, label: 'Trending — homepage carousel' },
               ].map(({ key, label }) => (
                 <label key={key} className="flex cursor-pointer items-center gap-2.5 text-sm text-muted">
                   <input type="checkbox" className="h-4 w-4 accent-ink" {...form.register(key)} />

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [sections, bestSellers] = await Promise.all([
+  const [sections, bestSellers, trendingProducts] = await Promise.all([
     HomepageService.getSections().catch((error) => {
       console.error('[home] campaign sections unavailable', error);
       return [];
@@ -24,10 +24,14 @@ export default async function HomePage() {
       console.error('[home] bestsellers unavailable', error);
       return [];
     }),
+    ProductService.byFlag('trending', 5).catch((error) => {
+      console.error('[home] trending products unavailable', error);
+      return [];
+    }),
   ]);
   return (
     <>
-      <CultHome bestSellers={bestSellers} slides={sections.map((section) => ({
+      <CultHome bestSellers={bestSellers} trendingProducts={trendingProducts} slides={sections.map((section) => ({
         id: section.id,
         title: section.title,
         href: section.href,

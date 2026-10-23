@@ -395,12 +395,13 @@ export const ProductService = {
     return rows.map(toProductCard);
   },
 
-  /** Curated home-page rails. One query shape, three flags. */
-  async byFlag(flag: 'featured' | 'new' | 'bestseller' | 'sale', limit = 8): Promise<ProductCardDTO[]> {
+  /** Curated home-page rails. One query shape, shared merchandising flags. */
+  async byFlag(flag: 'featured' | 'new' | 'bestseller' | 'trending' | 'sale', limit = 8): Promise<ProductCardDTO[]> {
     const where: Prisma.ProductWhereInput = { ...publicWhere() };
     if (flag === 'featured') where.isFeatured = true;
     if (flag === 'new') where.isNewArrival = true;
     if (flag === 'bestseller') where.isBestSeller = true;
+    if (flag === 'trending') where.isTrending = true;
     if (flag === 'sale') where.compareAtPrice = { not: null };
 
     const rows = await prisma.product.findMany({

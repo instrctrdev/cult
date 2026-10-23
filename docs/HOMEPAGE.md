@@ -5,7 +5,7 @@ The CULT homepage uses a dark editorial layout:
 1. Full-screen campaign hero with the CULT wordmark and a shop link.
 2. Three image-led collection panels for Polos, Shirts and T-Shirts.
 3. A swipeable bestsellers rail using live product images and prices.
-4. An interactive three-card "Looks for the streets" section.
+4. An auto-rotating five-product "Trending right now" carousel. Products are selected with the Trending option in Admin.
 
 The existing announcement bar, header, category navigation and footer remain in the storefront shell. On mobile, the three collection panels stack and the product rail scrolls horizontally.
 

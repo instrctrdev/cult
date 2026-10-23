@@ -180,6 +180,7 @@ model Product {
   isFeatured   Boolean @default(false)
   isNewArrival Boolean @default(false)
   isBestSeller Boolean @default(false)
+  isTrending   Boolean @default(false)
   position     Int     @default(0)
 
   /// Set by the importer when the source store had no description/imagery,
@@ -212,6 +213,7 @@ model Product {
   @@index([isFeatured])
   @@index([isNewArrival])
   @@index([isBestSeller])
+  @@index([isTrending])
   @@index([price])
   @@fulltext([name, description])
 }

@@ -68,6 +68,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       isFeatured: body.isFeatured,
       isNewArrival: body.isNewArrival,
       isBestSeller: body.isBestSeller,
+      isTrending: body.isTrending,
       metaTitle: body.metaTitle ?? null,
       metaDescription: body.metaDescription ?? null,
       categories: { create: body.categoryIds.map((categoryId, i) => ({ categoryId, position: i })) },

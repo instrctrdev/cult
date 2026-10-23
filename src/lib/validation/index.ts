@@ -190,6 +190,7 @@ export const adminProductSchema = z.object({
   isFeatured: z.boolean().default(false),
   isNewArrival: z.boolean().default(false),
   isBestSeller: z.boolean().default(false),
+  isTrending: z.boolean().default(false),
   metaTitle: z.string().trim().max(255).optional().nullable(),
   metaDescription: z.string().trim().max(500).optional().nullable(),
 });

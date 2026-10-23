@@ -54,6 +54,7 @@ export const PATCH = withErrorHandling(async (req: NextRequest, ctx: Ctx) => {
         isFeatured: body.isFeatured,
         isNewArrival: body.isNewArrival,
         isBestSeller: body.isBestSeller,
+        isTrending: body.isTrending,
         metaTitle: body.metaTitle ?? null,
         metaDescription: body.metaDescription ?? null,
         needsDescription: !body.description,

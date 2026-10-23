@@ -29,7 +29,7 @@ export default async function NewProductPage() {
           name: '', vendor: 'CULT', slug: '', subtitle: '', description: '',
           fabric: '', fit: '', sizeChartImage: '', price: 0, compareAtPrice: null,
           status: 'DRAFT', categoryIds: [],
-          isFeatured: false, isNewArrival: false, isBestSeller: false,
+          isFeatured: false, isNewArrival: false, isBestSeller: false, isTrending: false,
           metaTitle: '', metaDescription: '',
         },
       }}
