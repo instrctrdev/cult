@@ -271,7 +271,14 @@
   scroll-snap-align: start;
 }
 
-.cult-look-stage { height: clamp(460px, 54vw, 680px); }
+.cult-look-stage {
+  height: clamp(460px, 54vw, 680px);
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cult-look-stage:active { cursor: grabbing; }
 .cult-look-card {
   top: 50%;
   left: 50%;

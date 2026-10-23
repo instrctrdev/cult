@@ -52,6 +52,8 @@ export function CultHome({
   const heroMobile = campaign?.mobileImage ?? '/images/home/cult-hero-mobile.jpg';
   const [lookIndex, setLookIndex] = React.useState(0);
   const [lookPaused, setLookPaused] = React.useState(false);
+  const swipeStart = React.useRef<{ x: number; y: number } | null>(null);
+  const suppressProductClick = React.useRef(false);
 
   React.useEffect(() => {
     if (trendingProducts.length < 2 || lookPaused) return;
@@ -59,7 +61,7 @@ export function CultHome({
 
     const interval = window.setInterval(() => {
       setLookIndex((current) => (current + 1) % trendingProducts.length);
-    }, 3800);
+    }, 2500);
 
     return () => window.clearInterval(interval);
   }, [lookPaused, trendingProducts.length]);
@@ -67,6 +69,40 @@ export function CultHome({
   React.useEffect(() => {
     setLookIndex((current) => current % Math.max(1, trendingProducts.length));
   }, [trendingProducts.length]);
+
+  const startLookSwipe = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    swipeStart.current = { x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setLookPaused(true);
+  };
+
+  const finishLookSwipe = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    setLookPaused(event.pointerType === 'mouse');
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!start || trendingProducts.length < 2) return;
+
+    const horizontalDistance = event.clientX - start.x;
+    const verticalDistance = event.clientY - start.y;
+    if (Math.abs(horizontalDistance) < 45 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
+
+    suppressProductClick.current = true;
+    setLookIndex((current) => (
+      current + (horizontalDistance < 0 ? 1 : -1) + trendingProducts.length
+    ) % trendingProducts.length);
+    window.setTimeout(() => {
+      suppressProductClick.current = false;
+    }, 500);
+  };
+
+  const cancelLookSwipe = (event: React.PointerEvent<HTMLDivElement>) => {
+    swipeStart.current = null;
+    setLookPaused(event.pointerType === 'mouse');
+  };
 
   return (
     <div className="cult-home bg-bg">
@@ -144,6 +180,16 @@ export function CultHome({
             onMouseLeave={() => setLookPaused(false)}
             onFocusCapture={() => setLookPaused(true)}
             onBlurCapture={() => setLookPaused(false)}
+            onPointerDown={startLookSwipe}
+            onPointerUp={finishLookSwipe}
+            onPointerCancel={cancelLookSwipe}
+            onDragStart={(event) => event.preventDefault()}
+            onClickCapture={(event) => {
+              if (!suppressProductClick.current) return;
+              event.preventDefault();
+              event.stopPropagation();
+              suppressProductClick.current = false;
+            }}
           >
             {trendingProducts.map((product, index) => {
               const position = lookPosition(index, lookIndex, trendingProducts.length);
