@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { withErrorHandling, notFound, conflict } from '@/lib/errors';
 import { requirePermission } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
@@ -45,6 +46,7 @@ export const PATCH = withErrorHandling(async (req: NextRequest, ctx: Ctx) => {
   });
 
   clearAssetCache();
+  revalidatePath('/');
 
   await AuditService.log({
     actorId: actor.id, action: 'homepage.update', entityType: 'HomepageSection',
@@ -60,6 +62,7 @@ export const DELETE = withErrorHandling(async (req: NextRequest, ctx: Ctx) => {
   const { id } = await ctx.params;
 
   await prisma.homepageSection.delete({ where: { id } });
+  revalidatePath('/');
 
   await AuditService.log({
     actorId: actor.id, action: 'homepage.delete', entityType: 'HomepageSection',

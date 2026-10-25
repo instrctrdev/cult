@@ -6,16 +6,24 @@ import * as React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { formatPaise } from '@/lib/money';
 import type { ProductCardDTO } from '@/types';
+import type { HomepageCategoryPromoDTO, HomepageReelDTO } from '@/services/homepage.service';
+import { HomepageIntro } from './homepage-intro';
+import { HomeReels } from './home-reels';
 
 export interface CultHeroSlide {
   id: string;
+  key: string;
   title: string;
+  subtitle: string | null;
+  ctaLabel: string;
   href: string;
   desktopImage: string | null;
   mobileImage: string | null;
   imageAlt: string;
   focalDesktop: string;
   focalMobile: string;
+  videoUrl: string | null;
+  textMode: 'IMAGE' | 'OVERLAY';
 }
 
 const collections = [
@@ -40,16 +48,20 @@ export function CultHome({
   slides,
   bestSellers,
   trendingProducts,
+  categoryPromos,
+  reels,
 }: {
   slides: CultHeroSlide[];
   bestSellers: ProductCardDTO[];
   trendingProducts: ProductCardDTO[];
+  categoryPromos: HomepageCategoryPromoDTO[];
+  reels: HomepageReelDTO[];
 }) {
-  const campaign = slides.find((slide) =>
-    slide.desktopImage?.includes('/cult/') || slide.desktopImage?.includes('/home/cult-'),
-  );
+  const campaign = slides.find((slide) => slide.key === 'hero');
   const heroDesktop = campaign?.desktopImage ?? '/images/home/cult-hero-desktop.jpg';
   const heroMobile = campaign?.mobileImage ?? '/images/home/cult-hero-mobile.jpg';
+  const showHeroCopy = !campaign || campaign.textMode === 'OVERLAY';
+  const [heroReadyUrl, setHeroReadyUrl] = React.useState<string | null>(null);
   const [lookIndex, setLookIndex] = React.useState(0);
   const [lookPaused, setLookPaused] = React.useState(false);
   const swipeStart = React.useRef<{ x: number; y: number } | null>(null);
@@ -106,31 +118,31 @@ export function CultHome({
 
   return (
     <div className="cult-home bg-bg">
+      <HomepageIntro />
       <section className="cult-hero relative isolate overflow-hidden bg-sunken text-white" aria-labelledby="cult-hero-title">
         <Image src={heroMobile} alt="" fill priority sizes="100vw" className="object-cover md:hidden" style={{ objectPosition: campaign?.focalMobile ?? 'center center' }} />
         <Image src={heroDesktop} alt="" fill priority sizes="100vw" className="hidden object-cover md:block" style={{ objectPosition: campaign?.focalDesktop ?? 'center center' }} />
-        <div className="cult-hero-shade absolute inset-0" aria-hidden />
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
-          <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.42em] text-white/85 md:text-xs">CULT / 001</p>
-          <h1 id="cult-hero-title" className="font-sans text-[clamp(4.75rem,17vw,15rem)] font-bold leading-[0.78] tracking-[-0.09em]">CULT.</h1>
-          <p className="mt-6 text-xs font-medium uppercase tracking-[0.26em] text-white/90 md:mt-9 md:text-sm">Dress like you mean it</p>
-        </div>
-        <Link href="/shop" className="cult-outline-button absolute bottom-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap md:bottom-12">
-          Explore collection <ArrowRight size={18} aria-hidden />
-        </Link>
-      </section>
-
-      <section className="cult-collections" aria-label="Shop by category">
-        {collections.map((collection) => (
-          <Link key={collection.title} href={collection.href} className="cult-collection group relative isolate overflow-hidden bg-sunken text-white">
-            <Image src={collection.image} alt={collection.alt} fill sizes="(max-width: 767px) 100vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" aria-hidden />
-            <div className="absolute inset-x-5 bottom-7 z-10 md:inset-x-8 md:bottom-10">
-              <h2 className="font-sans text-4xl font-black uppercase tracking-[-0.055em] md:text-[clamp(2.5rem,4vw,5rem)]">{collection.title}</h2>
-              <span className="cult-outline-button mt-4 w-fit">Shop now <ArrowRight size={17} aria-hidden /></span>
+        {campaign?.videoUrl && (
+          <video key={campaign.videoUrl} src={campaign.videoUrl} autoPlay muted loop playsInline preload="metadata" onCanPlay={() => setHeroReadyUrl(campaign.videoUrl)} className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${heroReadyUrl === campaign.videoUrl ? 'opacity-100' : 'opacity-0'}`} aria-hidden />
+        )}
+        {showHeroCopy ? (
+          <>
+            <div className="cult-hero-shade absolute inset-0" aria-hidden />
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
+              <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.42em] text-white/85 md:text-xs">CULT / 001</p>
+              <h1 id="cult-hero-title" className="font-sans text-[clamp(4.75rem,17vw,15rem)] font-bold leading-[0.78] tracking-[-0.09em]">{campaign?.title && campaign.title !== 'CULT 001' ? campaign.title : 'CULT.'}</h1>
+              <p className="mt-6 text-xs font-medium uppercase tracking-[0.26em] text-white/90 md:mt-9 md:text-sm">{campaign?.subtitle || 'Dress like you mean it'}</p>
             </div>
-          </Link>
-        ))}
+            <Link href={campaign?.href ?? '/shop'} className="cult-outline-button absolute bottom-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap md:bottom-12">
+              {campaign?.ctaLabel || 'Explore collection'} <ArrowRight size={18} aria-hidden />
+            </Link>
+          </>
+        ) : (
+          <>
+            <h1 id="cult-hero-title" className="sr-only">{campaign.title}</h1>
+            <Link href={campaign.href} aria-label={`Shop ${campaign.title}`} className="absolute inset-0 z-10" />
+          </>
+        )}
       </section>
 
       <section className="cult-bestsellers border-y border-line bg-surface py-16 md:py-24" aria-labelledby="bestsellers-title">
@@ -166,6 +178,29 @@ export function CultHome({
             ))}
           </div>
       </section>
+
+      {categoryPromos.length > 0 && (
+        <section className="cult-promo-section border-b border-line bg-bg py-16 md:py-24" aria-labelledby="cult-promo-title">
+          <div className="container">
+            <p className="mb-3 text-center text-[11px] uppercase tracking-[0.36em] text-muted">The CULT selection</p>
+            <h2 id="cult-promo-title" className="mb-8 text-center font-sans text-3xl font-black uppercase tracking-[-0.04em] md:mb-10 md:text-5xl">Life before sold out</h2>
+            <div className="cult-promo-grid">
+              {categoryPromos.map((promo) => (
+                <Link key={promo.id} href={promo.href} className="cult-promo-card group relative isolate block overflow-hidden bg-sunken text-white">
+                  <Image src={promo.mobileImage} alt="" fill sizes="(max-width: 767px) 100vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105 md:hidden" />
+                  <Image src={promo.desktopImage} alt="" fill sizes="(max-width: 767px) 100vw, 33vw" className="hidden object-cover transition-transform duration-700 group-hover:scale-105 md:block" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/25 to-transparent transition-colors duration-300 group-hover:from-black/80" aria-hidden />
+                  <div className="absolute bottom-5 left-5 z-10 md:bottom-6 md:left-6">
+                    {promo.eyebrow && <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-white/85">{promo.eyebrow}</p>}
+                    <h3 className="text-3xl font-black uppercase leading-none tracking-[-0.04em] md:text-[clamp(1.7rem,2.6vw,3.1rem)]">{promo.title}</h3>
+                    <span className="mt-4 inline-flex items-center gap-2 border border-white/75 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors group-hover:bg-white group-hover:text-black">Shop now <ArrowRight size={14} aria-hidden /></span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {trendingProducts.length > 0 && (
         <section className="cult-looks overflow-hidden bg-bg py-16 md:py-24" aria-labelledby="looks-title">
@@ -239,6 +274,7 @@ export function CultHome({
           )}
         </section>
       )}
+      <HomeReels reels={reels} />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import 'server-only';
 import { prisma } from '@/lib/prisma';
 import { publicAsset } from '@/lib/public-asset';
+import { ProductService } from '@/services/product.service';
+import type { ProductCardDTO } from '@/types';
 import type {
   SectionTextAlign, SectionTextMode, SectionTheme,
 } from '@/data/homepage';
@@ -32,6 +34,24 @@ export interface HomepageSectionDTO {
   expectedMobilePath: string;
 }
 
+export interface HomepageCategoryPromoDTO {
+  id: string;
+  eyebrow: string | null;
+  title: string;
+  href: string;
+  desktopImage: string;
+  mobileImage: string;
+  imageAlt: string;
+}
+
+export interface HomepageReelDTO {
+  id: string;
+  title: string;
+  videoUrl: string;
+  posterUrl: string | null;
+  products: ProductCardDTO[];
+}
+
 export const HomepageService = {
   /** Active bands in display order, with artwork resolved against the filesystem. */
   async getSections(): Promise<HomepageSectionDTO[]> {
@@ -55,7 +75,7 @@ export const HomepageService = {
         // A landscape crop is a poor phone composition, but it beats a blank
         // band, so the desktop art is used as the mobile fallback.
         mobileImage: mobile ?? desktop,
-        videoUrl: row.videoUrl,
+        videoUrl: publicAsset(row.videoUrl),
         imageAlt: row.imageAlt?.trim() || row.title,
         focalDesktop: row.focalDesktop,
         focalMobile: row.focalMobile,
@@ -82,6 +102,38 @@ export const HomepageService = {
 
   async getById(id: string) {
     return prisma.homepageSection.findUnique({ where: { id } });
+  },
+
+  async getCategoryPromos(): Promise<HomepageCategoryPromoDTO[]> {
+    const rows = await prisma.homepageCategoryPromo.findMany({
+      where: { isActive: true }, orderBy: [{ position: 'asc' }, { createdAt: 'asc' }], take: 12,
+    });
+    return rows.flatMap((row) => {
+      const desktop = publicAsset(row.desktopImage);
+      if (!desktop) return [];
+      return [{
+        id: row.id, eyebrow: row.eyebrow, title: row.title, href: row.href,
+        desktopImage: desktop, mobileImage: publicAsset(row.mobileImage) ?? desktop,
+        imageAlt: row.imageAlt?.trim() || row.title,
+      }];
+    });
+  },
+
+  async getReels(): Promise<HomepageReelDTO[]> {
+    const rows = await prisma.homepageReel.findMany({
+      where: { isActive: true }, orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+      include: { products: { orderBy: { position: 'asc' }, select: { productId: true } } },
+      take: 12,
+    });
+    const reels = await Promise.all(rows.flatMap((row) => {
+      const videoUrl = publicAsset(row.videoUrl);
+      if (!videoUrl) return [];
+      return [ProductService.byIds(row.products.map((item) => item.productId)).then((products) => ({
+        id: row.id, title: row.title, videoUrl,
+        posterUrl: publicAsset(row.posterUrl), products,
+      }))];
+    }));
+    return reels.filter((reel) => reel.products.length === 5);
   },
 
   /** Persists a new order after drag-and-drop. */

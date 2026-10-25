@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { withErrorHandling, conflict } from '@/lib/errors';
 import { requirePermission } from '@/lib/auth/session';
 import { prisma } from '@/lib/prisma';
@@ -32,6 +33,7 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
 
   // New artwork may already be on disk; drop the existence memo so it shows.
   clearAssetCache();
+  revalidatePath('/');
 
   await AuditService.log({
     actorId: actor.id, action: 'homepage.create', entityType: 'HomepageSection',

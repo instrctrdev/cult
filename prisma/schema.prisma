@@ -199,6 +199,7 @@ model Product {
   categories       ProductCategory[]
   images           ProductImage[]
   videos           ProductVideo[]
+  homepageReels    HomepageReelProduct[]
   variants         ProductVariant[]
   reviews          Review[]
   cartItems        CartItem[]
@@ -1083,6 +1084,51 @@ model HomepageSection {
   updatedAt DateTime @updatedAt
 
   @@index([isActive, position])
+}
+
+/// Editorial category cards shown after the bestseller rail. They are separate
+/// from the store's navigation categories, so campaigns can target any route.
+model HomepageCategoryPromo {
+  id           String   @id @default(cuid())
+  eyebrow      String?  @db.VarChar(80)
+  title        String   @db.VarChar(120)
+  href         String   @db.VarChar(512)
+  desktopImage String   @db.VarChar(512)
+  mobileImage  String?  @db.VarChar(512)
+  imageAlt     String?  @db.VarChar(255)
+  position     Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive, position])
+}
+
+/// Short editorial clips with five linked catalogue products.
+model HomepageReel {
+  id        String   @id @default(cuid())
+  title     String   @db.VarChar(120)
+  videoUrl  String   @db.VarChar(512)
+  posterUrl String?  @db.VarChar(512)
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products  HomepageReelProduct[]
+
+  @@index([isActive, position])
+}
+
+model HomepageReelProduct {
+  reelId    String
+  productId String
+  position  Int
+  reel      HomepageReel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([reelId, productId])
+  @@index([reelId, position])
+  @@index([productId])
 }
 
 // ───────────────────────── Behavioural marketing ─────────────────────────

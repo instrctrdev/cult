@@ -347,6 +347,30 @@ export const adminHomepageReorderSchema = z.object({
   order: z.array(cuidSchema).min(1).max(50),
 });
 
+const homepageAssetSchema = z.string().trim().max(512)
+  .regex(/^\/(?:uploads|images)\/[a-zA-Z0-9/_.,-]+$/, 'Upload an image or video first.');
+
+export const adminHomepagePromoSchema = z.object({
+  eyebrow: z.string().trim().max(80).optional().nullable(),
+  title: z.string().trim().min(1).max(120),
+  href: internalHrefSchema,
+  desktopImage: homepageAssetSchema,
+  mobileImage: homepageAssetSchema.optional().nullable(),
+  imageAlt: z.string().trim().max(255).optional().nullable(),
+  position: z.coerce.number().int().min(0).max(999).default(0),
+  isActive: z.boolean().default(true),
+});
+
+export const adminHomepageReelSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  videoUrl: homepageAssetSchema,
+  posterUrl: homepageAssetSchema.optional().nullable(),
+  productIds: z.array(cuidSchema).length(5, 'Choose exactly five products.')
+    .refine((ids) => new Set(ids).size === ids.length, 'Choose five different products.'),
+  position: z.coerce.number().int().min(0).max(999).default(0),
+  isActive: z.boolean().default(true),
+});
+
 export const adminOrderStatusSchema = z.object({
   status: z.enum([
     'PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY',

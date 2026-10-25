@@ -32,7 +32,7 @@ export function HomepageManager({
   const { toast } = useToast();
 
   const [sections, setSections] = React.useState(initial);
-  const [editing, setEditing] = React.useState<AdminHomepageSection | 'new' | null>(null);
+  const [editing, setEditing] = React.useState<AdminHomepageSection | 'new' | 'new-hero' | null>(null);
   const [dragIndex, setDragIndex] = React.useState<number | null>(null);
   const [savingOrder, setSavingOrder] = React.useState(false);
 
@@ -81,12 +81,24 @@ export function HomepageManager({
   };
 
   const liveCount = sections.filter((s) => s.isActive).length;
+  const hero = sections.find((s) => s.key === 'hero');
 
   return (
     <>
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-5">
+        <div>
+          <h2 className="font-semibold">Single homepage hero</h2>
+          <p className="mt-1 text-sm text-muted">Upload one desktop and mobile offer banner, or an MP4/WebM video. The live hero uses this record only.</p>
+          <p className="mt-1 text-xs text-muted">Desktop image: 1920 × 1080 px · Mobile image: 1080 × 1920 px</p>
+        </div>
+        {canWrite && <Button variant="outline" onClick={() => setEditing(hero ?? 'new-hero')}>{hero ? 'Edit hero media' : 'Create hero'}</Button>}
+      </div>
+      <details className="rounded-lg border border-line p-4">
+        <summary className="cursor-pointer text-sm font-semibold">Archived campaign records</summary>
+        <p className="my-3 text-xs text-muted">The current homepage uses the hero record above. Older bands are kept here for editing or reference.</p>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          {liveCount} of {sections.length} bands live
+          {liveCount} of {sections.length} records marked active
           {savingOrder && <span className="ml-2 text-2xs uppercase tracking-wide2 text-faint">saving order…</span>}
         </p>
         {canWrite && (
@@ -229,16 +241,18 @@ export function HomepageManager({
           No homepage sections yet.
         </p>
       )}
+      </details>
 
       <Sheet open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
         <SheetContent
           side="bottom"
-          title={editing === 'new' ? 'New homepage section' : 'Edit homepage section'}
+          title={editing === 'new' || editing === 'new-hero' ? 'New homepage section' : 'Edit homepage section'}
           className="lg:inset-y-0 lg:right-0 lg:left-auto lg:max-h-none lg:max-w-xl lg:rounded-none"
         >
           {editing && (
             <HomepageSectionForm
-              section={editing === 'new' ? null : editing}
+              section={editing === 'new' || editing === 'new-hero' ? null : editing}
+              initialKey={editing === 'new-hero' ? 'hero' : undefined}
               nextPosition={sections.length}
               onDone={() => {
                 setEditing(null);

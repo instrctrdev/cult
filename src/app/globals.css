@@ -250,9 +250,43 @@
 
 .cult-outline-button:hover { background: white; color: #101010; }
 
-.cult-collections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.cult-collection { display: block; height: clamp(560px, 55vw, 860px); }
-.cult-collection + .cult-collection { border-left: 1px solid rgb(255 255 255 / 0.1); }
+.cult-promo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cult-promo-card { aspect-ratio: 2.36 / 1; min-height: 215px; }
+.cult-reel-card { width: min(25vw, 280px); aspect-ratio: 9 / 16; }
+.cult-reel-products { scrollbar-width: thin; scrollbar-color: #aaa transparent; }
+
+.cult-intro-grid {
+  opacity: 0.4;
+  background-image: linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px), linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle, #000 10%, transparent 85%);
+}
+.cult-intro { animation: cult-intro-out 700ms ease-in 3.5s forwards; }
+.cult-intro-line {
+  font-size: clamp(2.5rem, 9vw, 9rem);
+  font-weight: 900;
+  line-height: 0.94;
+  letter-spacing: -0.065em;
+  text-transform: uppercase;
+  opacity: 0;
+}
+.cult-intro-line-one { animation: cult-intro-phrase 1.15s cubic-bezier(.22, 1, .36, 1) 0.25s forwards; }
+.cult-intro-line-two { color: #d4261e; animation: cult-intro-phrase 1.2s cubic-bezier(.22, 1, .36, 1) 0.95s forwards; }
+.cult-intro-mark { opacity: 0; animation: cult-intro-logo 1.65s cubic-bezier(.22, 1, .36, 1) 2s forwards; }
+.cult-intro-progress { animation: cult-intro-progress 3.5s linear forwards; }
+@keyframes cult-intro-phrase {
+  0% { opacity: 0; transform: translateY(55px) skewY(4deg); filter: blur(12px); }
+  35% { opacity: 1; filter: blur(0); }
+  72% { opacity: 1; transform: translateY(0) skewY(0); }
+  100% { opacity: 0; transform: translateY(-34px); }
+}
+@keyframes cult-intro-logo {
+  0% { opacity: 0; transform: scale(1.2); filter: blur(16px); }
+  35% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes cult-intro-progress { from { width: 0; } to { width: 100%; } }
+@keyframes cult-intro-out { to { opacity: 0; visibility: hidden; } }
 
 .cult-product-rail {
   display: flex;
@@ -322,9 +356,9 @@
 @media (max-width: 767px) {
   .cult-hero { height: 84svh; min-height: 580px; }
   .cult-hero-shade { background: linear-gradient(180deg, rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.38) 42%, rgb(0 0 0 / 0.74)); }
-  .cult-collections { grid-template-columns: 1fr; }
-  .cult-collection { height: 118vw; max-height: 580px; min-height: 420px; }
-  .cult-collection + .cult-collection { border-left: 0; border-top: 1px solid rgb(255 255 255 / 0.1); }
+  .cult-promo-grid { grid-template-columns: 1fr; gap: 10px; }
+  .cult-promo-card { min-height: 0; }
+  .cult-reel-card { width: 65vw; max-width: 270px; }
   .cult-product-rail { gap: 12px; }
   .cult-product { width: 72vw; max-width: 330px; }
   .cult-look-stage { height: 490px; }
@@ -333,6 +367,12 @@
   .cult-look-card[data-position='right'] { transform: translate(12%, -50%) scale(0.83); }
   .cult-look-card[data-position='far-left'] { transform: translate(-165%, -50%) scale(0.65); opacity: 0.18; }
   .cult-look-card[data-position='far-right'] { transform: translate(65%, -50%) scale(0.65); opacity: 0.18; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cult-intro, .cult-intro-line-one, .cult-intro-line-two, .cult-intro-mark, .cult-intro-progress { animation: none; }
+  .cult-intro-mark { opacity: 1; }
+  .cult-intro-line { display: none; }
 }
 
 .announcement-track {
