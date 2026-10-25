@@ -88,8 +88,8 @@ export function HomepageManager({
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-5">
         <div>
           <h2 className="font-semibold">Single homepage hero</h2>
-          <p className="mt-1 text-sm text-muted">Upload one desktop and mobile offer banner, or an MP4/WebM video. The live hero uses this record only.</p>
-          <p className="mt-1 text-xs text-muted">Desktop image: 1920 × 1080 px · Mobile image: 1080 × 1920 px</p>
+          <p className="mt-1 text-sm text-muted">One looping hero video. Upload an MP4 or WebM here; desktop and mobile images are loading posters.</p>
+          <p className="mt-1 text-xs text-muted">Video: 1920 × 1080 px for a landscape clip, or 1080 × 1920 px for a portrait clip. Posters: desktop 1920 × 1080 px · mobile 1080 × 1920 px.</p>
         </div>
         {canWrite && <Button variant="outline" onClick={() => setEditing(hero ?? 'new-hero')}>{hero ? 'Edit hero media' : 'Create hero'}</Button>}
       </div>

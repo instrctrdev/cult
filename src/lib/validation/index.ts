@@ -349,6 +349,8 @@ export const adminHomepageReorderSchema = z.object({
 
 const homepageAssetSchema = z.string().trim().max(512)
   .regex(/^\/(?:uploads|images)\/[a-zA-Z0-9/_.,-]+$/, 'Upload an image or video first.');
+const homepageVideoAssetSchema = z.string().trim().max(512)
+  .regex(/^\/(?:uploads|videos)\/[a-zA-Z0-9/_.,-]+$/, 'Upload an MP4 or WebM video first.');
 
 export const adminHomepagePromoSchema = z.object({
   eyebrow: z.string().trim().max(80).optional().nullable(),
@@ -363,7 +365,7 @@ export const adminHomepagePromoSchema = z.object({
 
 export const adminHomepageReelSchema = z.object({
   title: z.string().trim().min(1).max(120),
-  videoUrl: homepageAssetSchema,
+  videoUrl: homepageVideoAssetSchema,
   posterUrl: homepageAssetSchema.optional().nullable(),
   productIds: z.array(cuidSchema).length(5, 'Choose exactly five products.')
     .refine((ids) => new Set(ids).size === ids.length, 'Choose five different products.'),
