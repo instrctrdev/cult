@@ -52,6 +52,7 @@ export default async function HomePage() {
         focalDesktop: section.focalDesktop,
         focalMobile: section.focalMobile,
         videoUrl: section.videoUrl,
+        mobileVideoUrl: section.mobileVideoUrl,
         textMode: section.textMode,
       }))} />
       <WebsiteJsonLd />
