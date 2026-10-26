@@ -1050,8 +1050,10 @@ model HomepageSection {
   desktopImage String? @db.VarChar(512)
   /// 9:16 portrait artwork. Falls back to the desktop image when absent.
   mobileImage  String? @db.VarChar(512)
-  /// Optional background video; the still image becomes the poster frame.
+  /// Optional landscape video for desktop.
   videoUrl     String? @db.VarChar(512)
+  /// Optional portrait video for phones; falls back to the desktop video.
+  mobileVideoUrl String? @db.VarChar(512)
 
   /// Alt text. Written by the editor because only they can see the photograph.
   imageAlt String? @db.VarChar(255)

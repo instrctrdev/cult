@@ -23,6 +23,7 @@ export interface CultHeroSlide {
   focalDesktop: string;
   focalMobile: string;
   videoUrl: string | null;
+  mobileVideoUrl: string | null;
   textMode: 'IMAGE' | 'OVERLAY';
 }
 
@@ -61,8 +62,7 @@ export function CultHome({
   const heroDesktop = campaign?.desktopImage ?? '/images/home/cult-hero-desktop.jpg';
   const heroMobile = campaign?.mobileImage ?? '/images/home/cult-hero-mobile.jpg';
   const showHeroCopy = !campaign || campaign.textMode === 'OVERLAY';
-  const portraitHeroVideo = campaign?.videoUrl === '/videos/cult-launch-reel.mp4';
-  const [heroReadyUrl, setHeroReadyUrl] = React.useState<string | null>(null);
+  const heroVideo = campaign?.videoUrl ?? campaign?.mobileVideoUrl;
   const [lookIndex, setLookIndex] = React.useState(0);
   const [lookPaused, setLookPaused] = React.useState(false);
   const swipeStart = React.useRef<{ x: number; y: number } | null>(null);
@@ -121,10 +121,15 @@ export function CultHome({
     <div className="cult-home bg-bg">
       <HomepageIntro />
       <section className="cult-hero relative isolate overflow-hidden bg-sunken text-white" aria-labelledby="cult-hero-title">
-        <Image src={heroMobile} alt="" fill priority sizes="100vw" className="object-cover md:hidden" style={{ objectPosition: campaign?.focalMobile ?? 'center center' }} />
-        <Image src={heroDesktop} alt="" fill priority sizes="100vw" className="hidden object-cover md:block" style={{ objectPosition: campaign?.focalDesktop ?? 'center center' }} />
-        {campaign?.videoUrl && (
-          <video key={campaign.videoUrl} src={campaign.videoUrl} autoPlay muted loop playsInline preload="metadata" onCanPlay={() => setHeroReadyUrl(campaign.videoUrl)} className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${portraitHeroVideo ? 'object-contain bg-black/65' : 'object-cover'} ${heroReadyUrl === campaign.videoUrl ? 'opacity-100' : 'opacity-0'}`} aria-hidden />
+        {!heroVideo && <>
+          <Image src={heroMobile} alt="" fill priority sizes="100vw" className="object-cover md:hidden" style={{ objectPosition: campaign?.focalMobile ?? 'center center' }} />
+          <Image src={heroDesktop} alt="" fill priority sizes="100vw" className="hidden object-cover md:block" style={{ objectPosition: campaign?.focalDesktop ?? 'center center' }} />
+        </>}
+        {heroVideo && (
+          <video key={`${campaign?.videoUrl}:${campaign?.mobileVideoUrl}`} autoPlay muted loop playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" aria-hidden>
+            {campaign?.mobileVideoUrl && <source src={campaign.mobileVideoUrl} media="(max-width: 767px)" />}
+            <source src={campaign?.videoUrl ?? campaign?.mobileVideoUrl ?? undefined} />
+          </video>
         )}
         {showHeroCopy ? (
           <>

@@ -18,6 +18,7 @@ export interface HomepageSectionDTO {
   desktopImage: string | null;
   mobileImage: string | null;
   videoUrl: string | null;
+  mobileVideoUrl: string | null;
   imageAlt: string;
   focalDesktop: string;
   focalMobile: string;
@@ -76,6 +77,7 @@ export const HomepageService = {
         // band, so the desktop art is used as the mobile fallback.
         mobileImage: mobile ?? desktop,
         videoUrl: publicAsset(row.videoUrl),
+        mobileVideoUrl: publicAsset(row.mobileVideoUrl),
         imageAlt: row.imageAlt?.trim() || row.title,
         focalDesktop: row.focalDesktop,
         focalMobile: row.focalMobile,
