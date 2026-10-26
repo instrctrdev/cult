@@ -224,7 +224,6 @@
 .cult-hero {
   height: min(88svh, 920px);
   min-height: 570px;
-  background: #080808;
 }
 
 .cult-hero-shade {
@@ -355,7 +354,7 @@
 .cult-look-card[data-position='active']:focus-visible .cult-look-cta { opacity: 1; transform: translateX(4px); }
 
 @media (max-width: 767px) {
-  .cult-hero { height: min(84svh, 177.78vw); min-height: 0; }
+  .cult-hero { height: 84svh; min-height: 580px; }
   .cult-hero-shade { background: linear-gradient(180deg, rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.38) 42%, rgb(0 0 0 / 0.74)); }
   .cult-promo-grid { grid-template-columns: 1fr; gap: 10px; }
   .cult-promo-card { min-height: 0; }

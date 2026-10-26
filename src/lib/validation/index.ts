@@ -328,7 +328,6 @@ export const adminHomepageSectionSchema = z.object({
   desktopImage: z.string().trim().max(512).optional().nullable(),
   mobileImage: z.string().trim().max(512).optional().nullable(),
   videoUrl: z.string().trim().max(512).optional().nullable(),
-  mobileVideoUrl: z.string().trim().max(512).optional().nullable(),
   imageAlt: z.string().trim().max(255).optional().nullable(),
   focalDesktop: focalSchema.default('50% 50%'),
   focalMobile: focalSchema.default('50% 35%'),

@@ -49,7 +49,6 @@ export default async function AdminHomepagePage() {
           desktopImage: s.desktopImage,
           mobileImage: s.mobileImage,
           videoUrl: s.videoUrl,
-          mobileVideoUrl: s.mobileVideoUrl,
           imageAlt: s.imageAlt,
           focalDesktop: s.focalDesktop,
           focalMobile: s.focalMobile,

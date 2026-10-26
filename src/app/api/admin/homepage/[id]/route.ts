@@ -40,7 +40,6 @@ export const PATCH = withErrorHandling(async (req: NextRequest, ctx: Ctx) => {
       desktopImage: body.desktopImage || null,
       mobileImage: body.mobileImage || null,
       videoUrl: body.videoUrl || null,
-      mobileVideoUrl: body.mobileVideoUrl || null,
       imageAlt: body.imageAlt || null,
       railSource: body.showProductRail ? body.railSource || null : null,
     },

@@ -26,7 +26,6 @@ export const POST = withErrorHandling(async (req: NextRequest) => {
       desktopImage: body.desktopImage || null,
       mobileImage: body.mobileImage || null,
       videoUrl: body.videoUrl || null,
-      mobileVideoUrl: body.mobileVideoUrl || null,
       imageAlt: body.imageAlt || null,
       railSource: body.showProductRail ? body.railSource || null : null,
     },

@@ -19,7 +19,6 @@ export interface AdminHomepageSection {
   desktopImage: string | null;
   mobileImage: string | null;
   videoUrl: string | null;
-  mobileVideoUrl: string | null;
   imageAlt: string | null;
   focalDesktop: string;
   focalMobile: string;
@@ -66,7 +65,7 @@ export function HomepageSectionForm({
 }) {
   const { toast } = useToast();
   const [uploading, setUploading] = React.useState<'desktop' | 'mobile' | null>(null);
-  const [uploadingVideo, setUploadingVideo] = React.useState<'desktop' | 'mobile' | null>(null);
+  const [uploadingVideo, setUploadingVideo] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const form = useForm<FormValues>({
@@ -79,7 +78,6 @@ export function HomepageSectionForm({
       desktopImage: section?.desktopImage ?? '',
       mobileImage: section?.mobileImage ?? '',
       videoUrl: section?.videoUrl ?? '',
-      mobileVideoUrl: section?.mobileVideoUrl ?? '',
       imageAlt: section?.imageAlt ?? '',
       focalDesktop: section?.focalDesktop ?? '50% 50%',
       focalMobile: section?.focalMobile ?? '50% 35%',
@@ -125,22 +123,22 @@ export function HomepageSectionForm({
     }
   };
 
-  const uploadVideo = async (which: 'desktop' | 'mobile', file: File) => {
-    setUploadingVideo(which);
+  const uploadVideo = async (file: File) => {
+    setUploadingVideo(true);
     try {
       const body = new FormData();
       body.append('file', file);
       body.append('folder', 'home-videos');
-      body.append('name', `${form.getValues('key') || 'hero'}-${which}-video`);
+      body.append('name', `${form.getValues('key') || 'hero'}-video`);
       const res = await fetch('/api/admin/media/video', { method: 'POST', body });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error?.message ?? 'Video upload failed.');
-      form.setValue(which === 'desktop' ? 'videoUrl' : 'mobileVideoUrl', json.url);
-      toast({ title: `${which === 'desktop' ? 'Desktop' : 'Mobile'} video uploaded — save the section to publish it`, variant: 'success' });
+      form.setValue('videoUrl', json.url);
+      toast({ title: 'Hero video uploaded — save the section to publish it', variant: 'success' });
     } catch (err) {
       toast({ title: err instanceof Error ? err.message : 'Video upload failed.', variant: 'error' });
     } finally {
-      setUploadingVideo(null);
+      setUploadingVideo(false);
     }
   };
 
@@ -175,7 +173,7 @@ export function HomepageSectionForm({
       {/* ── Artwork ──────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <h3 className="font-serif text-base">Artwork</h3>
-        {section?.key === 'hero' && <p className="rounded-md border border-line bg-surface p-3 text-xs text-muted">Upload separate desktop and mobile videos. The videos fill the hero without showing the old image behind them. Clear both video fields to switch back to images.</p>}
+        {section?.key === 'hero' && <p className="rounded-md border border-line bg-surface p-3 text-xs text-muted">For a designed offer banner, set Wording to “In the image”. To switch from video back to an image, clear the video field below and save.</p>}
 
         {(['desktop', 'mobile'] as const).map((which) => {
           const key = which === 'desktop' ? ('desktopImage' as const) : ('mobileImage' as const);
@@ -297,17 +295,15 @@ export function HomepageSectionForm({
           <Input {...form.register('imageAlt')} />
         </Field>
 
-        {(['desktop', 'mobile'] as const).map((which) => (
-          <Field key={which} label={`${which === 'desktop' ? 'Desktop' : 'Mobile'} hero video (optional)`} htmlFor={`hs-${which}-video`} hint={which === 'desktop' ? 'MP4, 1920 × 1080 px (16:9) recommended.' : 'MP4, 1080 × 1920 px (9:16) recommended. If empty, the desktop video plays on phones.'}>
-            <div className="flex gap-2">
-              <Input id={`hs-${which}-video`} placeholder="/uploads/home-videos/…" {...form.register(which === 'desktop' ? 'videoUrl' : 'mobileVideoUrl')} />
-              <label className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded border border-line px-3 text-xs hover:border-ink">
-                <input type="file" accept="video/mp4,video/webm" className="sr-only" disabled={uploadingVideo !== null} onChange={(event) => event.target.files?.[0] && void uploadVideo(which, event.target.files[0])} />
-                <Upload size={14} aria-hidden /> {uploadingVideo === which ? 'Uploading…' : 'Upload'}
-              </label>
-            </div>
-          </Field>
-        ))}
+        <Field label="Hero video (optional)" htmlFor="hs-video" hint="MP4 or WebM, 1920 × 1080 px recommended. A mobile-friendly central subject is best. Autoplays silently and loops; the images are its fallback.">
+          <div className="flex gap-2">
+            <Input id="hs-video" placeholder="/uploads/home-videos/…" {...form.register('videoUrl')} />
+            <label className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded border border-line px-3 text-xs hover:border-ink">
+              <input type="file" accept="video/mp4,video/webm" className="sr-only" disabled={uploadingVideo} onChange={(event) => event.target.files?.[0] && void uploadVideo(event.target.files[0])} />
+              <Upload size={14} aria-hidden /> {uploadingVideo ? 'Uploading…' : 'Upload'}
+            </label>
+          </div>
+        </Field>
       </section>
 
       {/* ── Content ──────────────────────────────────────────────────── */}
@@ -427,7 +423,7 @@ export function HomepageSectionForm({
         )}
       </section>
 
-      <Button type="submit" size="lg" full disabled={uploading !== null || uploadingVideo !== null} loading={form.formState.isSubmitting}>
+      <Button type="submit" size="lg" full disabled={uploading !== null || uploadingVideo} loading={form.formState.isSubmitting}>
         {section ? 'Save section' : 'Create section'}
       </Button>
     </form>
