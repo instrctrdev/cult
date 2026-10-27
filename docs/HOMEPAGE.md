@@ -7,7 +7,7 @@ The CULT homepage uses a dark editorial layout:
 3. A swipeable bestsellers rail using live product images and prices.
 4. Three starter category features, editable in Admin, with more cards available as needed.
 5. The auto-rotating, swipeable five-product “Trending right now” carousel. Products are selected with the Trending option in Admin.
-6. A shoppable reels rail. Tapping a reel opens a full-screen player with sound and close controls. Its five tagged products scroll horizontally at the bottom and can be added to the cart after selecting a variant when needed.
+6. A shoppable reels rail. The product bubble expands a list of five linked products on each card. Tapping the rest of the reel opens a full-screen player with sound and close controls. The tagged products scroll horizontally at the bottom and can be added to the cart after selecting a variant when needed.
 
 The existing announcement bar, header, category navigation and footer remain in the storefront shell. On mobile, category features stack and both product and reel rails scroll horizontally.
 

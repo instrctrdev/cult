@@ -5,16 +5,18 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ExternalLink, Play, Volume2, VolumeX, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Play, Volume2, VolumeX, X } from 'lucide-react';
 import { useCartActions } from '@/hooks/use-cart';
 import { rupees } from '@/lib/analytics';
 import type { HomepageReelDTO } from '@/services/homepage.service';
 import { formatPaise } from '@/lib/money';
 import type { ProductCardDTO, ProductDetailDTO } from '@/types';
 
-function ReelCard({ reel, viewerOpen, onOpen }: {
+function ReelCard({ reel, expanded, viewerOpen, onToggle, onOpen }: {
   reel: HomepageReelDTO;
+  expanded: boolean;
   viewerOpen: boolean;
+  onToggle: () => void;
   onOpen: (trigger: HTMLButtonElement) => void;
 }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -48,8 +50,30 @@ function ReelCard({ reel, viewerOpen, onOpen }: {
       {!playing && <span className="pointer-events-none absolute left-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white"><Play size={14} fill="currentColor" aria-hidden /></span>}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 to-transparent" aria-hidden />
       <p className="pointer-events-none absolute bottom-5 left-4 right-16 truncate text-xs font-semibold uppercase tracking-[0.14em] text-white">{reel.title}</p>
-      <span className="pointer-events-none absolute bottom-4 right-4 rounded-full bg-white px-3 py-2 text-[11px] font-bold text-black shadow-lg">{reel.products.length} products</span>
       <button type="button" onClick={(event) => onOpen(event.currentTarget)} aria-label={`Play ${reel.title} and shop tagged products`} className="absolute inset-0 z-10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white" />
+      <button type="button" onClick={onToggle} aria-expanded={expanded} aria-controls={`reel-products-${reel.id}`} aria-label={`${expanded ? 'Hide' : 'Show'} five products in ${reel.title}`} className="absolute bottom-4 right-4 z-30 flex items-center gap-2 rounded-full bg-white px-2 py-1.5 text-black shadow-lg transition-transform hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+        {reel.products[0]?.image && <Image src={reel.products[0].image.url} alt="" width={29} height={29} className="h-7 w-7 rounded-full object-cover" />}
+        <span className="text-[11px] font-bold">{reel.products.length}</span>
+        {expanded ? <ChevronDown size={15} aria-hidden /> : <ChevronUp size={15} aria-hidden />}
+      </button>
+      {expanded && (
+        <div id={`reel-products-${reel.id}`} className="cult-reel-products absolute inset-x-3 bottom-16 z-20 max-h-[72%] overflow-y-auto rounded-2xl bg-white/95 p-2 text-black shadow-2xl backdrop-blur-md">
+          {reel.products.map((product) => {
+            const photo = product.image ?? product.images[0];
+            return (
+              <Link key={product.id} href={`/product/${product.slug}`} className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-black/10 focus-visible:bg-black/10">
+                <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded bg-neutral-200">
+                  {photo && <Image src={photo.url} alt="" fill sizes="40px" className="object-cover" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-medium">{product.name}</span>
+                  <span className="text-xs font-semibold">{formatPaise(product.pricePaise)}</span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </article>
   );
 }
@@ -193,11 +217,13 @@ function ReelViewer({ reel, onClose, triggerRef }: {
 
 export function HomeReels({ reels }: { reels: HomepageReelDTO[] }) {
   const [activeReel, setActiveReel] = React.useState<HomepageReelDTO | null>(null);
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const triggerRef = React.useRef<HTMLButtonElement | null>(null);
   if (!reels.length) return null;
 
   const openReel = (reel: HomepageReelDTO, trigger: HTMLButtonElement) => {
     triggerRef.current = trigger;
+    setExpandedId(null);
     setActiveReel(reel);
   };
 
@@ -206,10 +232,10 @@ export function HomeReels({ reels }: { reels: HomepageReelDTO[] }) {
       <div className="container mb-8 text-center">
         <p className="mb-3 text-[11px] uppercase tracking-[0.35em] text-muted">Seen on you</p>
         <h2 id="cult-reels-heading" className="font-sans text-3xl font-black uppercase tracking-[-0.05em] md:text-5xl">Styled &amp; loved</h2>
-        <p className="mt-3 text-sm text-muted">Tap a reel to watch and shop its tagged pieces.</p>
+        <p className="mt-3 text-sm text-muted">Tap the product bubble to preview five pieces, or tap the reel to watch and shop.</p>
       </div>
       <div className="cult-reels-rail no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 md:gap-5 md:px-[max(2rem,calc((100vw-1440px)/2))]" role="region" aria-label="Shoppable reels" tabIndex={0}>
-        {reels.map((reel) => <ReelCard key={reel.id} reel={reel} viewerOpen={activeReel !== null} onOpen={(trigger) => openReel(reel, trigger)} />)}
+        {reels.map((reel) => <ReelCard key={reel.id} reel={reel} expanded={expandedId === reel.id} viewerOpen={activeReel !== null} onToggle={() => setExpandedId((current) => current === reel.id ? null : reel.id)} onOpen={(trigger) => openReel(reel, trigger)} />)}
       </div>
       <Dialog.Root open={activeReel !== null} onOpenChange={(open) => { if (!open) setActiveReel(null); }}>
         {activeReel && <ReelViewer reel={activeReel} onClose={() => setActiveReel(null)} triggerRef={triggerRef} />}
