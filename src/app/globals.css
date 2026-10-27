@@ -254,7 +254,6 @@
 .cult-promo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .cult-promo-card { aspect-ratio: 2.36 / 1; min-height: 215px; }
 .cult-reel-card { width: min(25vw, 280px); aspect-ratio: 9 / 16; }
-.cult-reel-products { scrollbar-width: thin; scrollbar-color: #aaa transparent; }
 
 .cult-intro-grid {
   opacity: 0.4;
