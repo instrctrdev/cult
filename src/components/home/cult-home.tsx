@@ -194,7 +194,7 @@ export function CultHome({
       </section>
 
       {trendingProducts.length > 0 && (
-        <section className="cult-looks overflow-hidden bg-bg py-16 md:py-24" aria-labelledby="looks-title">
+        <section className="cult-looks overflow-hidden py-16 md:py-24" aria-labelledby="looks-title">
           <div className="container text-center">
             <p className="mb-3 text-[11px] uppercase tracking-[0.38em] text-muted">The CULT edit</p>
             <h2 id="looks-title" className="font-sans text-[clamp(3.3rem,8vw,7.5rem)] font-black uppercase leading-[0.84] tracking-[-0.075em]">Trending<br />right now</h2>

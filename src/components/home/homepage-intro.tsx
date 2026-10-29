@@ -3,14 +3,17 @@
 import * as React from 'react';
 import { CultMark } from '@/components/store/cult-mark';
 
-/** A short first-visit brand reveal before the homepage is shown. */
+const INTRO_SEEN_KEY = 'cult-home-intro-v2-seen';
+const INTRO_DURATION_MS = 7900;
+
+/** A first-visit logo reveal inspired by the supplied black studio intro. */
 export function HomepageIntro() {
   const [visible, setVisible] = React.useState(true);
   const previousOverflow = React.useRef('');
 
   React.useEffect(() => {
     try {
-      if (sessionStorage.getItem('cult-home-intro-seen') === '1') {
+      if (sessionStorage.getItem(INTRO_SEEN_KEY) === '1') {
         setVisible(false);
         return;
       }
@@ -22,8 +25,8 @@ export function HomepageIntro() {
     const timer = window.setTimeout(() => {
       setVisible(false);
       document.body.style.overflow = previousOverflow.current;
-      try { sessionStorage.setItem('cult-home-intro-seen', '1'); } catch { /* Optional. */ }
-    }, reducedMotion ? 800 : 4200);
+      try { sessionStorage.setItem(INTRO_SEEN_KEY, '1'); } catch { /* Optional. */ }
+    }, reducedMotion ? 800 : INTRO_DURATION_MS);
     return () => {
       window.clearTimeout(timer);
       document.body.style.overflow = previousOverflow.current;
@@ -33,22 +36,19 @@ export function HomepageIntro() {
   if (!visible) return null;
 
   return (
-    <div className="cult-intro fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#080809] text-white" role="status" aria-label="CULT Clothing is loading">
-      <div className="cult-intro-grid absolute inset-0" aria-hidden />
-      <span className="cult-intro-vertical absolute left-5 top-6 text-[10px] uppercase tracking-[0.4em] text-white/40 md:left-10 md:top-10">CULT / 001</span>
-      <div className="relative w-full px-5 text-center">
-        <div className="cult-intro-line cult-intro-line-one">Your wardrobe&apos;s</div>
-        <div className="cult-intro-line cult-intro-line-two">next obsession</div>
-        <div className="cult-intro-mark absolute inset-0 flex items-center justify-center">
-          <CultMark inverted className="text-[clamp(5rem,21vw,16rem)]" />
+    <div className="cult-intro fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#080809] text-white" role="status" aria-label="CULT Clothing intro">
+      <div className="cult-intro-center relative flex flex-col items-center px-5 text-center">
+        <div className="cult-intro-logo relative">
+          <CultMark inverted className="text-[clamp(5rem,14vw,11rem)]" />
+          <span className="cult-intro-glint" aria-hidden />
         </div>
+        <p className="cult-intro-tagline">Dress like you mean it</p>
       </div>
-      <div className="cult-intro-progress absolute bottom-0 left-0 h-1 bg-[#d4261e]" aria-hidden />
       <button type="button" onClick={() => {
         setVisible(false);
         document.body.style.overflow = previousOverflow.current;
-        try { sessionStorage.setItem('cult-home-intro-seen', '1'); } catch { /* Optional. */ }
-      }} className="absolute bottom-8 right-5 text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white md:right-10">
+        try { sessionStorage.setItem(INTRO_SEEN_KEY, '1'); } catch { /* Optional. */ }
+      }} className="absolute bottom-8 right-5 text-[10px] uppercase tracking-[0.3em] text-white/50 hover:text-white md:right-10">
         Skip intro
       </button>
     </div>
