@@ -121,7 +121,7 @@ export function HomepagePromoManager({ promos, canWrite }: { promos: PromoRow[];
   return (
     <section className="space-y-4 rounded-xl border border-line bg-surface p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h2 className="text-lg font-semibold">Category features</h2><p className="mt-1 text-sm text-muted">Extra campaign cards after Bestsellers. Each card can link to any collection.</p></div>
+        <div><h2 className="text-lg font-semibold">Archived category features</h2><p className="mt-1 text-sm text-muted">These saved cards are no longer shown on the homepage. The four category cards above Fresh Drops use local artwork.</p></div>
         {canWrite && <Button onClick={() => open('new')}>Add category feature</Button>}
       </div>
       <p className="text-xs text-muted">Upload each crop separately: desktop 1600 × 675 px; mobile 1080 × 456 px. Text is added by the site so the images remain reusable.</p>

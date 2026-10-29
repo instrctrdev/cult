@@ -251,8 +251,80 @@
 
 .cult-outline-button:hover { background: white; color: #101010; }
 
-.cult-promo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.cult-promo-card { aspect-ratio: 2.36 / 1; min-height: 215px; }
+.cult-featured-categories {
+  padding: 16px clamp(16px, 4vw, 60px);
+  background: #eeece9;
+}
+.cult-featured-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(8px, 1.1vw, 16px);
+}
+.cult-featured-category { aspect-ratio: 1.28 / 1; }
+.cult-featured-category-image { filter: grayscale(1) brightness(.68); }
+.cult-featured-category:nth-child(1) .cult-featured-category-image,
+.cult-featured-category:nth-child(3) .cult-featured-category-image { filter: grayscale(1) brightness(.92); }
+.cult-featured-category-shade {
+  background: linear-gradient(180deg, transparent 45%, rgb(0 0 0 / .78));
+}
+.cult-fresh-drops {
+  display: grid;
+  grid-template-columns: 26% 51% 23%;
+  min-height: clamp(340px, 30vw, 490px);
+  background: #e7e5e2;
+  color: #111;
+}
+.cult-fresh-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 38px clamp(20px, 4.3vw, 74px);
+}
+.cult-fresh-kicker {
+  margin-bottom: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+}
+.cult-fresh-copy h2 {
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: clamp(2.6rem, 4.6vw, 5.5rem);
+  font-weight: 900;
+  line-height: .9;
+  letter-spacing: -.065em;
+  text-transform: uppercase;
+}
+.cult-fresh-description { max-width: 210px; margin-top: 20px; font-size: 13px; line-height: 1.45; }
+.cult-fresh-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 42px;
+  margin-top: 20px;
+  padding: 0 18px;
+  background: #101010;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  transition: background-color 200ms;
+}
+.cult-fresh-button:hover { background: #b21713; }
+.cult-fresh-image { min-height: inherit; }
+.cult-fresh-aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 38px clamp(20px, 4vw, 72px);
+}
+.cult-fresh-aside p { font-size: 11px; font-weight: 700; line-height: 1.6; letter-spacing: .25em; text-transform: uppercase; }
+.cult-fresh-rule { width: 40px; height: 1px; margin-top: 24px; background: #111; }
+.cult-fresh-signature { margin-top: 38px; font-family: Georgia, serif; font-size: clamp(2rem, 3.3vw, 4rem); font-style: italic; letter-spacing: -.08em; transform: rotate(-9deg); }
 .cult-reel-card { width: min(25vw, 280px); aspect-ratio: 9 / 16; }
 .cult-reel-products { scrollbar-width: thin; scrollbar-color: #aaa transparent; }
 
@@ -357,8 +429,25 @@
 @media (max-width: 767px) {
   .cult-hero { height: min(72svh, 150vw); min-height: 0; }
   .cult-hero-shade { background: linear-gradient(180deg, rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.38) 42%, rgb(0 0 0 / 0.74)); }
-  .cult-promo-grid { grid-template-columns: 1fr; gap: 10px; }
-  .cult-promo-card { min-height: 0; }
+  .cult-featured-categories { padding: 12px 0 12px 16px; }
+  .cult-featured-categories-grid {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-right: 16px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .cult-featured-categories-grid::-webkit-scrollbar { display: none; }
+  .cult-featured-category { width: min(68vw, 300px); flex: none; scroll-snap-align: start; }
+  .cult-fresh-drops { grid-template-columns: 1fr; }
+  .cult-fresh-copy { min-height: 280px; padding: 35px 24px; }
+  .cult-fresh-copy h2 { font-size: clamp(3.3rem, 12vw, 5rem); }
+  .cult-fresh-image { min-height: 310px; }
+  .cult-fresh-aside { min-height: 140px; padding: 25px 24px; }
+  .cult-fresh-aside p { line-height: 1.4; }
+  .cult-fresh-rule { margin-top: 12px; }
+  .cult-fresh-signature { position: absolute; right: 30px; margin-top: 0; }
   .cult-reel-card { width: 65vw; max-width: 270px; }
   .cult-product-rail { gap: 12px; }
   .cult-product { width: 72vw; max-width: 330px; }

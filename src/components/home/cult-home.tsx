@@ -6,7 +6,7 @@ import * as React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { formatPaise } from '@/lib/money';
 import type { ProductCardDTO } from '@/types';
-import type { HomepageCategoryPromoDTO, HomepageReelDTO } from '@/services/homepage.service';
+import type { HomepageReelDTO } from '@/services/homepage.service';
 import { HomepageIntro } from './homepage-intro';
 import { HomeReels } from './home-reels';
 
@@ -33,6 +33,13 @@ const collections = [
   { title: 'T-Shirts', href: '/category/t-shirts', image: '/images/cult/edit-henley.jpg', alt: 'Model in a relaxed light top' },
 ];
 
+const featuredCategories = [
+  { title: 'T-Shirts', href: '/category/t-shirts', image: '/images/cult/category-t-shirts.webp', position: 'center 32%' },
+  { title: 'Collections', href: '/shop', image: '/images/cult/edit-sunflower-shirt.jpg', position: 'center 30%' },
+  { title: 'Caps', href: '/shop?q=cap', image: '/images/cult/category-caps.webp', position: 'center 24%' },
+  { title: 'New Arrivals', href: '/shop?collection=fresh-arrivals', image: '/images/cult/home-hero-mobile.jpg', position: 'center 24%' },
+] as const;
+
 type LookPosition = 'active' | 'left' | 'right' | 'far-left' | 'far-right';
 
 function lookPosition(index: number, activeIndex: number, count: number): LookPosition {
@@ -49,13 +56,11 @@ export function CultHome({
   slides,
   bestSellers,
   trendingProducts,
-  categoryPromos,
   reels,
 }: {
   slides: CultHeroSlide[];
   bestSellers: ProductCardDTO[];
   trendingProducts: ProductCardDTO[];
-  categoryPromos: HomepageCategoryPromoDTO[];
   reels: HomepageReelDTO[];
 }) {
   const campaign = slides.find((slide) => slide.key === 'hero');
@@ -151,6 +156,38 @@ export function CultHome({
         )}
       </section>
 
+      <section className="cult-featured-categories" aria-label="Shop by category">
+        <div className="cult-featured-categories-grid">
+          {featuredCategories.map((category) => (
+            <Link key={category.title} href={category.href} className="cult-featured-category group relative isolate block overflow-hidden bg-sunken text-white">
+              <Image src={category.image} alt="" fill sizes="(max-width: 640px) 75vw, (max-width: 1023px) 45vw, 25vw" className="cult-featured-category-image object-cover transition-transform duration-700 group-hover:scale-105" style={{ objectPosition: category.position }} />
+              <span className="cult-featured-category-shade absolute inset-0" aria-hidden />
+              <span className="absolute bottom-4 left-4 z-10 flex flex-col gap-1 md:bottom-5 md:left-5">
+                <span className="font-sans text-xs font-bold uppercase tracking-[0.14em] md:text-sm">{category.title}</span>
+                <span className="inline-flex items-center gap-1 font-sans text-[10px] tracking-[0.04em] text-white/90">Shop now <ArrowRight size={12} aria-hidden /></span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="cult-fresh-drops" aria-labelledby="fresh-drops-title">
+        <div className="cult-fresh-copy">
+          <p className="cult-fresh-kicker">New arrivals</p>
+          <h2 id="fresh-drops-title">Fresh<br />Drops</h2>
+          <p className="cult-fresh-description">The latest pieces from CULT. Limited runs. Don&apos;t miss out.</p>
+          <Link href="/shop?collection=fresh-arrivals" className="cult-fresh-button">View all <ArrowRight size={15} aria-hidden /></Link>
+        </div>
+        <div className="cult-fresh-image relative isolate min-h-[310px] overflow-hidden">
+          <Image src="/images/cult/home-hero-desktop.jpg" alt="Model wearing a CULT shirt and cargo trousers" fill sizes="(max-width: 767px) 100vw, 52vw" className="object-cover" style={{ objectPosition: '66% center' }} />
+        </div>
+        <div className="cult-fresh-aside" aria-hidden>
+          <p>Same mindset.<br />Different energy.</p>
+          <span className="cult-fresh-rule" />
+          <span className="cult-fresh-signature">CULT.</span>
+        </div>
+      </section>
+
       <section className="cult-bestsellers border-y border-line bg-surface py-16 md:py-24" aria-labelledby="bestsellers-title">
           <div className="container mb-8 flex flex-col gap-5 md:mb-10 md:flex-row md:items-end md:justify-between">
             <div>
@@ -184,29 +221,6 @@ export function CultHome({
             ))}
           </div>
       </section>
-
-      {categoryPromos.length > 0 && (
-        <section className="cult-promo-section border-b border-line bg-bg py-16 md:py-24" aria-labelledby="cult-promo-title">
-          <div className="container">
-            <p className="mb-3 text-center text-[11px] uppercase tracking-[0.36em] text-muted">The CULT selection</p>
-            <h2 id="cult-promo-title" className="mb-8 text-center font-sans text-3xl font-black uppercase tracking-[-0.04em] md:mb-10 md:text-5xl">Life before sold out</h2>
-            <div className="cult-promo-grid">
-              {categoryPromos.map((promo) => (
-                <Link key={promo.id} href={promo.href} className="cult-promo-card group relative isolate block overflow-hidden bg-sunken text-white">
-                  <Image src={promo.mobileImage} alt="" fill sizes="(max-width: 767px) 100vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105 md:hidden" />
-                  <Image src={promo.desktopImage} alt="" fill sizes="(max-width: 767px) 100vw, 33vw" className="hidden object-cover transition-transform duration-700 group-hover:scale-105 md:block" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/25 to-transparent transition-colors duration-300 group-hover:from-black/80" aria-hidden />
-                  <div className="absolute bottom-5 left-5 z-10 md:bottom-6 md:left-6">
-                    {promo.eyebrow && <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-white/85">{promo.eyebrow}</p>}
-                    <h3 className="text-3xl font-black uppercase leading-none tracking-[-0.04em] md:text-[clamp(1.7rem,2.6vw,3.1rem)]">{promo.title}</h3>
-                    <span className="mt-4 inline-flex items-center gap-2 border border-white/75 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors group-hover:bg-white group-hover:text-black">Shop now <ArrowRight size={14} aria-hidden /></span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {trendingProducts.length > 0 && (
         <section className="cult-looks overflow-hidden bg-bg py-16 md:py-24" aria-labelledby="looks-title">
