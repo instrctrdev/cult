@@ -175,7 +175,7 @@ export function HomepageSectionForm({
       {/* ── Artwork ──────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <h3 className="font-serif text-base">Artwork</h3>
-        {section?.key === 'hero' && <p className="rounded-md border border-line bg-surface p-3 text-xs text-muted">Upload separate desktop and mobile videos. The videos fill the hero without showing the old image behind them. Clear both video fields to switch back to images.</p>}
+        {section?.key === 'hero' && <p className="rounded-md border border-line bg-surface p-3 text-xs text-muted">The current storefront displays fixed blue hero artwork and copy. This record supplies the hero shop link; media saved here is archived.</p>}
 
         {(['desktop', 'mobile'] as const).map((which) => {
           const key = which === 'desktop' ? ('desktopImage' as const) : ('mobileImage' as const);

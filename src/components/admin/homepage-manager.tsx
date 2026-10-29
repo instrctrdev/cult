@@ -88,10 +88,10 @@ export function HomepageManager({
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-5">
         <div>
           <h2 className="font-semibold">Single homepage hero</h2>
-          <p className="mt-1 text-sm text-muted">One looping hero video. Upload an MP4 or WebM here; desktop and mobile images are loading posters.</p>
-          <p className="mt-1 text-xs text-muted">Video: 1920 × 1080 px for a landscape clip, or 1080 × 1920 px for a portrait clip. Posters: desktop 1920 × 1080 px · mobile 1080 × 1920 px.</p>
+          <p className="mt-1 text-sm text-muted">The blue editorial hero uses artwork and copy built into the storefront. This record controls its shop link.</p>
+          <p className="mt-1 text-xs text-muted">Previously uploaded hero images and videos remain saved here for reference.</p>
         </div>
-        {canWrite && <Button variant="outline" onClick={() => setEditing(hero ?? 'new-hero')}>{hero ? 'Edit hero media' : 'Create hero'}</Button>}
+        {canWrite && <Button variant="outline" onClick={() => setEditing(hero ?? 'new-hero')}>{hero ? 'Edit hero link' : 'Create hero'}</Button>}
       </div>
       <details className="rounded-lg border border-line p-4">
         <summary className="cursor-pointer text-sm font-semibold">Archived campaign records</summary>

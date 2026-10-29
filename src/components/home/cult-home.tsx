@@ -64,10 +64,6 @@ export function CultHome({
   reels: HomepageReelDTO[];
 }) {
   const campaign = slides.find((slide) => slide.key === 'hero');
-  const heroDesktop = campaign?.desktopImage ?? '/images/home/cult-hero-desktop.jpg';
-  const heroMobile = campaign?.mobileImage ?? '/images/home/cult-hero-mobile.jpg';
-  const showHeroCopy = !campaign || campaign.textMode === 'OVERLAY';
-  const heroVideo = campaign?.videoUrl ?? campaign?.mobileVideoUrl;
   const [lookIndex, setLookIndex] = React.useState(0);
   const [lookPaused, setLookPaused] = React.useState(false);
   const swipeStart = React.useRef<{ x: number; y: number } | null>(null);
@@ -126,34 +122,19 @@ export function CultHome({
     <div className="cult-home bg-bg">
       <HomepageIntro />
       <section className="cult-hero relative isolate overflow-hidden bg-sunken text-white" aria-labelledby="cult-hero-title">
-        {!heroVideo && <>
-          <Image src={heroMobile} alt="" fill priority sizes="100vw" className="object-cover md:hidden" style={{ objectPosition: campaign?.focalMobile ?? 'center center' }} />
-          <Image src={heroDesktop} alt="" fill priority sizes="100vw" className="hidden object-cover md:block" style={{ objectPosition: campaign?.focalDesktop ?? 'center center' }} />
-        </>}
-        {heroVideo && (
-          <video key={`${campaign?.videoUrl}:${campaign?.mobileVideoUrl}`} autoPlay muted loop playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" aria-hidden>
-            {campaign?.mobileVideoUrl && <source src={campaign.mobileVideoUrl} media="(max-width: 767px)" />}
-            <source src={campaign?.videoUrl ?? campaign?.mobileVideoUrl ?? undefined} />
-          </video>
-        )}
-        {showHeroCopy ? (
-          <>
-            <div className="cult-hero-shade absolute inset-0" aria-hidden />
-            <div className="absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.42em] text-white/85 md:text-xs">CULT / 001</p>
-              <h1 id="cult-hero-title" className="font-sans text-[clamp(4.75rem,17vw,15rem)] font-bold leading-[0.78] tracking-[-0.09em]">{campaign?.title && campaign.title !== 'CULT 001' ? campaign.title : 'CULT.'}</h1>
-              <p className="mt-6 text-xs font-medium uppercase tracking-[0.26em] text-white/90 md:mt-9 md:text-sm">{campaign?.subtitle || 'Dress like you mean it'}</p>
-            </div>
-            <Link href={campaign?.href ?? '/shop'} className="cult-outline-button absolute bottom-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap md:bottom-12">
-              {campaign?.ctaLabel || 'Explore collection'} <ArrowRight size={18} aria-hidden />
-            </Link>
-          </>
-        ) : (
-          <>
-            <h1 id="cult-hero-title" className="sr-only">{campaign.title}</h1>
-            <Link href={campaign.href} aria-label={`Shop ${campaign.title}`} className="absolute inset-0 z-10" />
-          </>
-        )}
+        <Image src="/images/cult/hero-blue-mobile.webp" alt="" fill priority sizes="100vw" className="cult-hero-photo object-cover md:hidden" />
+        <Image src="/images/cult/hero-blue-desktop.webp" alt="" fill priority sizes="100vw" className="cult-hero-photo hidden object-cover md:block" />
+        <div className="cult-hero-blue-wash absolute inset-0" aria-hidden />
+        <div className="cult-hero-copy relative z-10">
+          <p className="cult-hero-kicker">CULT / 001 <span aria-hidden>—</span> Dress like you mean it</p>
+          <p className="cult-hero-overline">Your wardrobe&apos;s</p>
+          <h1 id="cult-hero-title" className="font-sans">Next<br />Obsession.</h1>
+          <p className="cult-hero-description">Modern pieces. A sharper point of view.</p>
+          <Link href={campaign?.href ?? '/shop'} className="cult-outline-button cult-hero-cta">Explore collection <ArrowRight size={18} aria-hidden /></Link>
+        </div>
+        <p className="cult-hero-sidecopy">Real. Raw. Ready.<span>Stand out or step back.</span></p>
+        <div className="cult-hero-detail cult-hero-detail-left" aria-hidden />
+        <div className="cult-hero-detail cult-hero-detail-right" aria-hidden />
       </section>
 
       <section className="cult-featured-categories" aria-label="Shop by category">
@@ -171,15 +152,16 @@ export function CultHome({
         </div>
       </section>
 
-      <section className="cult-fresh-drops" aria-labelledby="fresh-drops-title">
+      <section className="cult-fresh-drops relative isolate overflow-hidden" aria-labelledby="fresh-drops-title">
+        <div className="cult-fresh-image absolute inset-0" aria-hidden>
+          <Image src="/images/cult/home-hero-mobile.jpg" alt="" fill sizes="(max-width: 767px) 100vw, 52vw" className="object-cover md:hidden" style={{ objectPosition: 'center 35%' }} />
+          <Image src="/images/cult/home-hero-desktop.jpg" alt="" fill sizes="(max-width: 767px) 100vw, 52vw" className="hidden object-cover md:block" style={{ objectPosition: '66% center' }} />
+        </div>
         <div className="cult-fresh-copy">
           <p className="cult-fresh-kicker">New arrivals</p>
           <h2 id="fresh-drops-title">Fresh<br />Drops</h2>
           <p className="cult-fresh-description">The latest pieces from CULT. Limited runs. Don&apos;t miss out.</p>
           <Link href="/shop?collection=fresh-arrivals" className="cult-fresh-button">View all <ArrowRight size={15} aria-hidden /></Link>
-        </div>
-        <div className="cult-fresh-image relative isolate min-h-[310px] overflow-hidden">
-          <Image src="/images/cult/home-hero-desktop.jpg" alt="Model wearing a CULT shirt and cargo trousers" fill sizes="(max-width: 767px) 100vw, 52vw" className="object-cover" style={{ objectPosition: '66% center' }} />
         </div>
         <div className="cult-fresh-aside" aria-hidden>
           <p>Same mindset.<br />Different energy.</p>
