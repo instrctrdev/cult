@@ -122,19 +122,10 @@ export function CultHome({
     <div className="cult-home bg-bg">
       <HomepageIntro />
       <section className="cult-hero relative isolate overflow-hidden bg-sunken text-white" aria-labelledby="cult-hero-title">
-        <Image src="/images/cult/hero-blue-mobile.webp" alt="" fill priority sizes="100vw" className="cult-hero-photo object-cover md:hidden" />
-        <Image src="/images/cult/hero-blue-desktop.webp" alt="" fill priority sizes="100vw" className="cult-hero-photo hidden object-cover md:block" />
-        <div className="cult-hero-blue-wash absolute inset-0" aria-hidden />
-        <div className="cult-hero-copy relative z-10">
-          <p className="cult-hero-kicker">CULT / 001 <span aria-hidden>—</span> Dress like you mean it</p>
-          <p className="cult-hero-overline">Your wardrobe&apos;s</p>
-          <h1 id="cult-hero-title" className="font-sans">Next<br />Obsession.</h1>
-          <p className="cult-hero-description">Modern pieces. A sharper point of view.</p>
-          <Link href={campaign?.href ?? '/shop'} className="cult-outline-button cult-hero-cta">Explore collection <ArrowRight size={18} aria-hidden /></Link>
-        </div>
-        <p className="cult-hero-sidecopy">Real. Raw. Ready.<span>Stand out or step back.</span></p>
-        <div className="cult-hero-detail cult-hero-detail-left" aria-hidden />
-        <div className="cult-hero-detail cult-hero-detail-right" aria-hidden />
+        <Image src="/images/cult/hero-poster-mobile.webp" alt="" fill priority sizes="100vw" className="cult-hero-photo object-cover md:hidden" />
+        <Image src="/images/cult/hero-poster-desktop.webp" alt="" fill priority sizes="100vw" className="cult-hero-photo hidden object-cover md:block" />
+        <h1 id="cult-hero-title" className="sr-only">Your wardrobe&apos;s next obsession. CULT Clothing.</h1>
+        <Link href={campaign?.href ?? '/shop'} className="cult-outline-button cult-hero-cta">Explore collection <ArrowRight size={18} aria-hidden /></Link>
       </section>
 
       <section className="cult-featured-categories" aria-label="Shop by category">
@@ -170,12 +161,10 @@ export function CultHome({
         </div>
       </section>
 
-      <section className="cult-bestsellers border-y border-line bg-surface py-16 md:py-24" aria-labelledby="bestsellers-title">
-          <div className="container mb-8 flex flex-col gap-5 md:mb-10 md:flex-row md:items-end md:justify-between">
+      <section className="cult-bestsellers border-y border-line bg-surface py-12 md:py-16" aria-labelledby="bestsellers-title">
+          <div className="container mb-6 flex flex-col gap-5 md:mb-8 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.38em] text-muted">◢ &nbsp; Most wanted fits</p>
-              <h2 id="bestsellers-title" className="font-sans text-[clamp(3.5rem,9vw,8rem)] font-black uppercase leading-[0.85] tracking-[-0.075em]">Bestsellers</h2>
-              <p className="mt-5 text-sm uppercase tracking-[0.08em] text-muted md:text-base">Heavy rotation pieces</p>
+              <h2 id="bestsellers-title" className="font-sans text-[clamp(3rem,7vw,6rem)] font-black uppercase leading-[0.85] tracking-[-0.075em]">Bestsellers</h2>
             </div>
             <Link href="/shop?collection=best-sellers" className="inline-flex items-center gap-3 self-start pb-1 text-xs font-semibold uppercase tracking-[0.24em] transition-colors hover:text-gold md:self-end">
               Explore collection <ArrowRight size={18} aria-hidden />

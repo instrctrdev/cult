@@ -33,7 +33,7 @@ export default async function AdminHomepagePage() {
       <header>
         <h1 className="font-serif text-2xl">Homepage</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
-          Manage the hero shop link and shoppable reels. The current hero artwork and category cards are part of the storefront design.
+          Manage the hero shop link and shoppable reels. The current hero posters and category cards are part of the storefront design.
         </p>
       </header>
 

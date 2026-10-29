@@ -88,7 +88,7 @@ export function HomepageManager({
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-5">
         <div>
           <h2 className="font-semibold">Single homepage hero</h2>
-          <p className="mt-1 text-sm text-muted">The blue editorial hero uses artwork and copy built into the storefront. This record controls its shop link.</p>
+          <p className="mt-1 text-sm text-muted">The black editorial hero uses desktop and mobile posters built into the storefront. This record controls its shop link.</p>
           <p className="mt-1 text-xs text-muted">Previously uploaded hero images and videos remain saved here for reference.</p>
         </div>
         {canWrite && <Button variant="outline" onClick={() => setEditing(hero ?? 'new-hero')}>{hero ? 'Edit hero link' : 'Create hero'}</Button>}

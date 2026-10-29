@@ -222,67 +222,11 @@
 
 /* The campaign follows the reference's full-bleed editorial rhythm. */
 .cult-hero {
-  height: min(88svh, 920px);
-  min-height: 570px;
-  background: #042d68;
+  width: 100%;
+  aspect-ratio: 1800 / 1013;
+  background: #0c0c0d;
 }
-
-.cult-hero-photo { object-position: center center; }
-.cult-hero-blue-wash {
-  background: linear-gradient(90deg, rgb(0 18 54 / .62) 0%, rgb(0 26 76 / .3) 43%, transparent 73%);
-}
-.cult-hero-copy { width: min(72%, 970px); margin-left: clamp(24px, 6vw, 110px); padding-top: clamp(50px, 10vh, 105px); }
-.cult-hero-kicker { font-size: 10px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; }
-.cult-hero-overline { margin-top: clamp(38px, 7vh, 85px); font-size: clamp(12px, 1.3vw, 19px); font-weight: 600; letter-spacing: .52em; text-transform: uppercase; }
-.cult-hero h1 {
-  margin-top: 14px;
-  font-size: clamp(5rem, 8.6vw, 10rem);
-  font-style: italic;
-  font-weight: 900;
-  line-height: .81;
-  letter-spacing: -.085em;
-  text-transform: uppercase;
-  text-shadow: 0 3px 28px rgb(0 20 60 / .16);
-}
-.cult-hero-description { max-width: 340px; margin-top: 27px; font-size: 11px; font-weight: 500; letter-spacing: .13em; line-height: 1.5; text-transform: uppercase; }
-.cult-hero-cta { margin-top: 30px; }
-.cult-hero-sidecopy {
-  position: absolute;
-  right: clamp(25px, 5vw, 90px);
-  bottom: 12%;
-  z-index: 10;
-  font-size: 12px;
-  font-style: italic;
-  font-weight: 700;
-  letter-spacing: .12em;
-  text-align: right;
-  text-transform: uppercase;
-}
-.cult-hero-sidecopy span { display: block; margin-top: 8px; font-size: 10px; font-weight: 400; }
-.cult-hero-detail {
-  position: absolute;
-  z-index: 5;
-  border: 1px solid rgb(255 255 255 / .5);
-  background-image: url('/images/cult/hero-blue-desktop.webp');
-  background-repeat: no-repeat;
-  box-shadow: 0 12px 35px rgb(0 18 60 / .28);
-}
-.cult-hero-detail-left {
-  bottom: 7%;
-  left: 5%;
-  width: min(17vw, 240px);
-  aspect-ratio: 1.6;
-  background-size: 330%;
-  background-position: 60% 95%;
-}
-.cult-hero-detail-right {
-  right: 13%;
-  bottom: 22%;
-  width: min(14vw, 205px);
-  aspect-ratio: 1.65;
-  background-size: 320%;
-  background-position: 60% 48%;
-}
+.cult-hero-cta { position: absolute; z-index: 10; top: 62%; left: 5%; background: rgb(12 12 13 / .6); }
 
 .cult-outline-button {
   display: inline-flex;
@@ -321,7 +265,7 @@
 .cult-fresh-drops {
   display: grid;
   grid-template-columns: 26% 51% 23%;
-  min-height: clamp(340px, 30vw, 490px);
+  min-height: clamp(310px, 26vw, 430px);
   background: #e7e5e2;
   color: #111;
 }
@@ -433,7 +377,7 @@
 }
 
 .cult-product {
-  width: clamp(230px, 26vw, 390px);
+  width: clamp(190px, 20vw, 290px);
   aspect-ratio: 3 / 4;
   flex: none;
   scroll-snap-align: start;
@@ -488,16 +432,8 @@
 .cult-look-card[data-position='active']:focus-visible .cult-look-cta { opacity: 1; transform: translateX(4px); }
 
 @media (max-width: 767px) {
-  .cult-hero { height: 92svh; min-height: 630px; max-height: 820px; }
-  .cult-hero-photo { object-position: center center; }
-  .cult-hero-blue-wash { background: linear-gradient(180deg, rgb(0 24 75 / .48), transparent 58%, rgb(0 30 75 / .15)); }
-  .cult-hero-copy { width: auto; margin: 0 22px; padding-top: 16px; }
-  .cult-hero-kicker { font-size: 8px; letter-spacing: .18em; }
-  .cult-hero-overline { margin-top: 24px; font-size: 10px; letter-spacing: .3em; }
-  .cult-hero h1 { margin-top: 8px; font-size: clamp(3rem, 12vw, 4.2rem); line-height: .84; }
-  .cult-hero-description { max-width: 270px; margin-top: 12px; font-size: 9px; }
-  .cult-hero-cta { min-height: 40px; margin-top: 12px; padding: 0 15px; font-size: 9px; }
-  .cult-hero-detail, .cult-hero-sidecopy { display: none; }
+  .cult-hero { aspect-ratio: 1000 / 1778; }
+  .cult-hero-cta { top: auto; right: 24px; bottom: 4%; left: auto; min-height: 42px; padding: 0 15px; font-size: 9px; }
   .cult-featured-categories { padding: 12px 0 12px 16px; }
   .cult-featured-categories-grid {
     display: flex;
@@ -509,32 +445,24 @@
   }
   .cult-featured-categories-grid::-webkit-scrollbar { display: none; }
   .cult-featured-category { width: min(68vw, 300px); flex: none; scroll-snap-align: start; }
-  .cult-fresh-drops { display: block; min-height: 670px; }
-  .cult-fresh-drops::after {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: linear-gradient(180deg, #e7e5e2 0%, rgb(231 229 226 / .96) 27%, transparent 57%, rgb(231 229 226 / .8) 100%);
-    content: '';
-    pointer-events: none;
-  }
+  .cult-fresh-drops { grid-template-columns: 49% 51%; min-height: 310px; }
   .cult-fresh-image {
-    top: 105px;
-    left: 0;
+    top: 0;
+    left: 34%;
     right: 0;
     bottom: 0;
-    -webkit-mask-image: none;
-    mask-image: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 32%, #000 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 32%, #000 100%);
   }
-  .cult-fresh-copy { min-height: 0; padding: 35px 24px 0; }
-  .cult-fresh-copy h2 { font-size: clamp(3.3rem, 12vw, 5rem); }
-  .cult-fresh-aside { position: absolute; right: 0; bottom: 0; left: 0; min-height: 130px; padding: 25px 24px; }
-  .cult-fresh-aside p { line-height: 1.4; }
-  .cult-fresh-rule { margin-top: 12px; }
-  .cult-fresh-signature { position: absolute; top: 50%; right: 30px; margin-top: 0; transform: translateY(-50%) rotate(-9deg); }
+  .cult-fresh-copy { min-height: 0; padding: 20px 0 20px 18px; }
+  .cult-fresh-kicker { margin-bottom: 12px; font-size: 8px; letter-spacing: .2em; }
+  .cult-fresh-copy h2 { font-size: clamp(2rem, 8vw, 2.7rem); }
+  .cult-fresh-description { max-width: 155px; margin-top: 12px; font-size: 10px; }
+  .cult-fresh-button { min-height: 34px; margin-top: 12px; padding: 0 11px; font-size: 9px; }
+  .cult-fresh-aside { display: none; }
   .cult-reel-card { width: 65vw; max-width: 270px; }
   .cult-product-rail { gap: 12px; }
-  .cult-product { width: 72vw; max-width: 330px; }
+  .cult-product { width: 58vw; max-width: 260px; }
   .cult-look-stage { height: 490px; }
   .cult-look-card { height: 82%; width: 72vw; }
   .cult-look-card[data-position='left'] { transform: translate(-112%, -50%) scale(0.83); }
