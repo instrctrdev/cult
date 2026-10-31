@@ -164,12 +164,17 @@ function ReelProductCard({ product, onNavigate }: { product: ProductCardDTO; onN
   );
 }
 
-function ReelViewer({ reel, onClose, triggerRef }: {
+function ReelViewer({ reel, reelIndex, reelCount, onStep, onClose, triggerRef }: {
   reel: HomepageReelDTO;
+  reelIndex: number;
+  reelCount: number;
+  onStep: (direction: -1 | 1) => void;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
 }) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const touchStart = React.useRef<{ x: number; y: number } | null>(null);
+  const wheelGesture = React.useRef({ delta: 0, lastEvent: 0, lastNavigation: 0 });
   const [muted, setMuted] = React.useState(true);
 
   React.useEffect(() => {
@@ -189,20 +194,73 @@ function ReelViewer({ reel, onClose, triggerRef }: {
     setMuted(next);
   };
 
+  const canStep = (direction: -1 | 1) => reelIndex + direction >= 0 && reelIndex + direction < reelCount;
+  const isInteractive = (target: EventTarget | null) =>
+    target instanceof Element && Boolean(target.closest('button, a, input, select, textarea, [role="region"]'));
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    touchStart.current = null;
+    if (isInteractive(event.target)) return;
+    const touch = event.touches[0];
+    touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaY) < 60 || Math.abs(deltaY) < Math.abs(deltaX) * 1.2) return;
+    const direction = deltaY < 0 ? 1 : -1;
+    if (canStep(direction)) onStep(direction);
+  };
+
+  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (isInteractive(event.target) || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+    const now = Date.now();
+    const gesture = wheelGesture.current;
+    if (now - gesture.lastEvent > 250) gesture.delta = 0;
+    gesture.lastEvent = now;
+    gesture.delta += event.deltaY;
+    if (Math.abs(gesture.delta) < 70 || now - gesture.lastNavigation < 900) return;
+    const direction = gesture.delta > 0 ? 1 : -1;
+    gesture.delta = 0;
+    if (!canStep(direction)) return;
+    gesture.lastNavigation = now;
+    onStep(direction);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest('input, select, textarea, [role="region"]')) return;
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    if (canStep(direction)) {
+      event.preventDefault();
+      onStep(direction);
+    }
+  };
+
   return (
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-[100] bg-black" />
-      <Dialog.Content onCloseAutoFocus={(event) => { event.preventDefault(); triggerRef.current?.focus(); }} className="fixed inset-0 z-[101] overflow-hidden bg-black text-white focus:outline-none">
+      <Dialog.Content onCloseAutoFocus={(event) => { event.preventDefault(); triggerRef.current?.focus(); }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} onTouchCancel={() => { touchStart.current = null; }} onWheel={handleWheel} onKeyDown={handleKeyDown} className="fixed inset-0 z-[101] overflow-hidden bg-black text-white focus:outline-none">
         <Dialog.Title className="sr-only">{reel.title}</Dialog.Title>
-        <Dialog.Description className="sr-only">Play the reel and shop its tagged products.</Dialog.Description>
-        <video ref={videoRef} src={reel.videoUrl} poster={reel.posterUrl ?? undefined} autoPlay muted={muted} loop playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover md:object-contain" aria-label={reel.title} />
+        <Dialog.Description className="sr-only">Swipe up or down to switch reels and shop their tagged products.</Dialog.Description>
+        <video key={reel.id} ref={videoRef} src={reel.videoUrl} poster={reel.posterUrl ?? undefined} autoPlay muted={muted} loop playsInline preload="metadata" className="absolute inset-0 h-full w-full touch-none object-cover md:object-contain" aria-label={reel.title} />
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-black/65 to-transparent" aria-hidden />
+        <p className="pointer-events-none absolute left-4 top-[max(1.5rem,env(safe-area-inset-top))] z-20 text-[11px] font-semibold uppercase tracking-[0.16em] text-white md:left-8 md:top-8" aria-live="polite">{reelIndex + 1} / {reelCount} {reelCount > 1 && <span className="block text-[9px] text-white/70 md:ml-2 md:inline md:text-[11px]">Swipe up or down</span>}</p>
         <div className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-30 flex gap-2 md:right-8 md:top-8">
           <button type="button" onClick={toggleSound} aria-label={muted ? 'Turn sound on' : 'Mute video'} className="grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
             {muted ? <VolumeX size={21} aria-hidden /> : <Volume2 size={21} aria-hidden />}
           </button>
           <Dialog.Close aria-label="Close reel" className="grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"><X size={23} aria-hidden /></Dialog.Close>
         </div>
+        {reelCount > 1 && <div className="absolute right-4 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-3 md:flex md:right-8">
+          <button type="button" onClick={() => onStep(-1)} disabled={!canStep(-1)} aria-label="Previous reel" className="grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"><ChevronUp size={24} aria-hidden /></button>
+          <button type="button" onClick={() => onStep(1)} disabled={!canStep(1)} aria-label="Next reel" className="grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"><ChevronDown size={24} aria-hidden /></button>
+        </div>}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-72 bg-gradient-to-t from-black/90 via-black/45 to-transparent" aria-hidden />
         <div className="absolute inset-x-0 bottom-0 z-20 pb-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
           <p className="mb-3 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-white md:px-8">Shop this reel · {reel.products.length} products</p>
@@ -227,18 +285,26 @@ export function HomeReels({ reels }: { reels: HomepageReelDTO[] }) {
     setActiveReel(reel);
   };
 
+  const stepReel = (direction: -1 | 1) => {
+    setActiveReel((current) => {
+      if (!current) return null;
+      const index = reels.findIndex((item) => item.id === current.id);
+      return index < 0 ? current : reels[index + direction] ?? current;
+    });
+  };
+
   return (
     <section className="border-t border-line bg-surface py-16 md:py-24" aria-labelledby="cult-reels-heading">
       <div className="container mb-8 text-center">
         <p className="mb-3 text-[11px] uppercase tracking-[0.35em] text-muted">Seen on you</p>
-        <h2 id="cult-reels-heading" className="font-sans text-3xl font-black uppercase tracking-[-0.05em] md:text-5xl">Styled &amp; loved</h2>
-        <p className="mt-3 text-sm text-muted">Tap the product bubble to preview five pieces, or tap the reel to watch and shop.</p>
+        <h2 id="cult-reels-heading" className="font-sans text-3xl font-black uppercase tracking-[-0.05em] md:text-5xl">Shop From Reels</h2>
+        <p className="mt-3 text-sm text-muted">Tap the product bubble to preview five pieces, or open a reel and swipe up or down to keep shopping.</p>
       </div>
       <div className="cult-reels-rail no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 md:gap-5 md:px-[max(2rem,calc((100vw-1440px)/2))]" role="region" aria-label="Shoppable reels" tabIndex={0}>
         {reels.map((reel) => <ReelCard key={reel.id} reel={reel} expanded={expandedId === reel.id} viewerOpen={activeReel !== null} onToggle={() => setExpandedId((current) => current === reel.id ? null : reel.id)} onOpen={(trigger) => openReel(reel, trigger)} />)}
       </div>
       <Dialog.Root open={activeReel !== null} onOpenChange={(open) => { if (!open) setActiveReel(null); }}>
-        {activeReel && <ReelViewer reel={activeReel} onClose={() => setActiveReel(null)} triggerRef={triggerRef} />}
+        {activeReel && <ReelViewer reel={activeReel} reelIndex={reels.findIndex((item) => item.id === activeReel.id)} reelCount={reels.length} onStep={stepReel} onClose={() => setActiveReel(null)} triggerRef={triggerRef} />}
       </Dialog.Root>
     </section>
   );
