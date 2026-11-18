@@ -2,8 +2,8 @@ import JsBarcode from 'jsbarcode';
 
 export const BLUETOOTH_PRINTER_EVENT = 'cult-bluetooth-printer';
 const BLUETOOTH_SPP = 0x1101;
-const DOTS_WIDE = 384; // P58D printable width: 48 mm at 203 dpi (8 dots/mm)
-const DOTS_HIGH = 240; // 30 mm at 8 dots/mm
+const DOTS_WIDE = 320; // 40 mm at 203 dpi (8 dots/mm)
+const DOTS_HIGH = 200; // 25 mm at 8 dots/mm
 
 export type BluetoothLabel = {
   sku: string;
@@ -97,17 +97,20 @@ function renderLabel(label: BluetoothLabel): Uint8Array {
   if (!context) throw new Error('This browser could not render the label.');
   context.fillStyle = '#fff'; context.fillRect(0, 0, DOTS_WIDE, DOTS_HIGH);
   context.fillStyle = '#000'; context.textAlign = 'center'; context.textBaseline = 'middle';
-  context.font = '700 26px Arial'; context.fillText(fitText(context, label.brand.toUpperCase(), 360), DOTS_WIDE / 2, 25);
-  context.font = '16px Arial'; context.fillText(fitText(context, `${label.name}${label.variant ? ` · ${label.variant}` : ''}`, 360), DOTS_WIDE / 2, 53);
-  context.font = '700 22px Arial'; context.fillText(fitText(context, `MRP ${label.mrp}`, 360), DOTS_WIDE / 2, 79);
+  context.font = '700 21px Arial'; context.fillText(fitText(context, label.brand.toUpperCase(), 304), DOTS_WIDE / 2, 18);
+  context.font = '15px Arial'; context.fillText(fitText(context, label.name, 304), DOTS_WIDE / 2, 42);
+  if (label.variant) {
+    context.font = '13px Arial'; context.fillText(fitText(context, label.variant, 304), DOTS_WIDE / 2, 59);
+  }
+  context.font = '700 19px Arial'; context.fillText(fitText(context, `MRP ${label.mrp}`, 304), DOTS_WIDE / 2, 79);
 
   const barcode = document.createElement('canvas');
-  JsBarcode(barcode, label.sku, { format: 'CODE128', width: 2, height: 92, margin: 0, displayValue: true, fontSize: 18 });
-  const maxWidth = 360;
+  JsBarcode(barcode, label.sku, { format: 'CODE128', width: 2, height: 74, margin: 0, displayValue: true, fontSize: 14, textMargin: 1 });
+  const maxWidth = 304;
   const scale = Math.min(1, maxWidth / barcode.width);
   const barcodeWidth = Math.round(barcode.width * scale);
-  const barcodeHeight = Math.min(145, Math.round(barcode.height * scale));
-  context.drawImage(barcode, (DOTS_WIDE - barcodeWidth) / 2, 92, barcodeWidth, barcodeHeight);
+  const barcodeHeight = Math.min(105, Math.round(barcode.height * scale));
+  context.drawImage(barcode, (DOTS_WIDE - barcodeWidth) / 2, 91, barcodeWidth, barcodeHeight);
 
   const pixels = context.getImageData(0, 0, DOTS_WIDE, DOTS_HIGH).data;
   const bytesPerRow = Math.ceil(DOTS_WIDE / 8);

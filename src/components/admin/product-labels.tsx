@@ -19,11 +19,12 @@ function barcodeValue(item: LabelItem) {
 }
 
 function LabelPreview({ item }: { item: LabelItem }) {
-  return <div className="product-label flex h-[30mm] w-[50mm] shrink-0 flex-col items-center justify-center overflow-hidden border border-line bg-white p-[2mm] text-center text-black shadow-sm print:shadow-none">
-    <strong className="max-w-full truncate text-[13px] uppercase">{item.brand}</strong>
-    <span className="max-w-full truncate text-[9px]">{item.name}{item.variant ? ` · ${item.variant}` : ''}</span>
-    <strong className="text-[12px]">MRP {formatPaise(item.mrpPaise)}</strong>
-    <svg className="product-label-barcode max-w-full" data-barcode={barcodeValue(item)} aria-label={`Barcode ${item.sku}`} />
+  return <div className="product-label flex h-[25mm] w-[40mm] shrink-0 flex-col items-center justify-center overflow-hidden border border-line bg-white p-[1mm] text-center text-black shadow-sm print:shadow-none">
+    <strong className="max-w-full truncate text-[11px] leading-[12px] uppercase">{item.brand}</strong>
+    <span className="max-w-full truncate text-[8px] leading-[10px]">{item.name}</span>
+    {item.variant && <span className="max-w-full truncate text-[8px] leading-[9px]">{item.variant}</span>}
+    <strong className="text-[11px] leading-[12px]">MRP {formatPaise(item.mrpPaise)}</strong>
+    <svg className="product-label-barcode max-h-[10mm] max-w-full shrink-0" data-barcode={barcodeValue(item)} aria-label={`Barcode ${item.sku}`} />
   </div>;
 }
 
@@ -52,7 +53,7 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
   React.useEffect(() => {
     document.querySelectorAll<SVGSVGElement>('.product-label-barcode').forEach((node) => {
       const value = node.dataset.barcode;
-      if (value) JsBarcode(node, value, { format: 'CODE128', width: 1.35, height: 38, margin: 0, displayValue: true, fontSize: 11 });
+      if (value) JsBarcode(node, value, { format: 'CODE128', width: 1.2, height: 29, margin: 0, displayValue: true, fontSize: 8, textMargin: 1 });
     });
   }, [counts, items]);
 
@@ -119,7 +120,7 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
   </section>;
 
   const hasLegacySku = items.some((item) => !/^\d{8,14}$/.test(item.sku));
-  return <div className="space-y-6">
+  return <div className="label-workspace space-y-6">
     <BluetoothPrinterManager />
     <details className="print-hide overflow-hidden rounded-lg border border-line bg-white" open>
       <summary className="flex cursor-pointer list-none items-center gap-3 p-4 font-semibold marker:content-none">
@@ -130,14 +131,14 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
         <ol className="grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
           <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">1. Pair the printer</strong><span className="mt-1 block text-muted">Switch on the P58D. In Windows open Settings → Bluetooth &amp; devices → Printers &amp; scanners → Add device, then select P58D.</span></li>
           <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">2. Install its driver</strong><span className="mt-1 block text-muted">Install the Shreyans P58D Windows driver. If asked for a port, select the Bluetooth COM port created by Windows.</span></li>
-          <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">3. Set label paper</strong><span className="mt-1 block text-muted">In Printer properties set the custom paper to 50 × 30 mm. Print one Windows test page before printing product labels.</span></li>
+          <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">3. Set label paper</strong><span className="mt-1 block text-muted">In Printer properties set the custom paper to 40 × 25 mm. Print one Windows test page before printing product labels.</span></li>
           <li className="rounded border border-line bg-surface/40 p-3"><strong className="block">4. Connect above</strong><span className="mt-1 block text-muted">In Windows Chrome click Connect Bluetooth printer and select the paired P58D. No extra printing app is required.</span></li>
         </ol>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
           <p className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />Chrome shows only paired Bluetooth serial printers in its device chooser. Once allowed, this site remembers the permission on this computer.</p>
           <a className="font-medium text-ink underline" href="https://cdn.shopify.com/s/files/1/0857/2020/3564/files/P58DLabelSetup.zip?v=1789812954" target="_blank" rel="noopener noreferrer">Download P58D Windows label driver</a>
         </div>
-        <p className="mt-3 rounded bg-amber-50 p-3 text-xs text-amber-900">The P58D is a 58 mm thermal printer. Use a compatible 50 × 30 mm adhesive roll and confirm that it stops correctly between labels. If it feeds continuously, the model does not sense label gaps and a gap-sensing label printer is required for individual stickers.</p>
+        <p className="mt-3 rounded bg-amber-50 p-3 text-xs text-amber-900">The P58D is a 58 mm thermal printer. Use the loaded 40 × 25 mm adhesive roll and confirm that it stops correctly between labels. If it feeds continuously, the model does not sense label gaps and a gap-sensing label printer is required for individual stickers.</p>
       </div>
     </details>
     {hasLegacySku && <section className="print-hide flex flex-wrap items-center justify-between gap-4 rounded-lg border border-gold/30 bg-gold/[0.05] p-4"><div><p className="font-medium">Some older variants use text SKUs</p><p className="mt-1 text-xs text-muted">Convert them once to unique 12-digit numeric barcodes. Previously printed text barcodes should then be replaced.</p></div><button type="button" disabled={converting} onClick={() => void convertLegacySkus()} className="rounded bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{converting ? 'Generating…' : 'Generate numeric barcodes'}</button></section>}
@@ -152,9 +153,19 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface/40 p-4"><p className="text-sm"><strong>{labels.length}</strong> labels across <strong>{selectedVariants}</strong> of {items.length} variants</p><div className="flex flex-wrap gap-2">{bluetoothReady && <button type="button" disabled={!labels.length || directPrinting} onClick={() => void printDirectly()} className="inline-flex items-center gap-2 rounded bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"><Bluetooth className="h-4 w-4" />{directPrinting ? 'Sending…' : `Print ${labels.length} by Bluetooth`}</button>}<button type="button" disabled={!labels.length} onClick={() => window.print()} className="inline-flex items-center gap-2 rounded border border-line bg-white px-5 py-2.5 text-sm font-semibold disabled:opacity-40"><Printer className="h-4 w-4" />Use Windows print dialog</button></div></div>
     </section>
 
-    <section><div className="print-hide mb-3"><h2 className="font-serif text-lg">Print preview</h2><p className="mt-1 text-xs text-muted">This is how every 50 × 30 mm label will print on the Shreyans P58D through Windows. In Chrome use 100% scale, margins None and headers and footers off.</p></div>
+    <section className="label-print-section"><div className="print-hide mb-3"><h2 className="font-serif text-lg">Print preview</h2><p className="mt-1 text-xs text-muted">This is how every 40 × 25 mm label will print on the Shreyans P58D through Windows. In Chrome use 100% scale, margins None and headers and footers off.</p></div>
       {labels.length ? <div className="label-sheet flex flex-wrap gap-3 rounded-lg border border-dashed border-line bg-surface/40 p-4 print:block print:border-0 print:bg-white print:p-0">{labels.map(({ item, copy }) => <LabelPreview key={`${item.id}-${copy}`} item={item} />)}</div> : <p className="print-hide rounded-lg border border-dashed border-line p-8 text-center text-sm text-muted">Increase a variant count to preview its label.</p>}
     </section>
-    <style jsx global>{`@media print { @page { size: 50mm 30mm; margin: 0; } .admin-sidebar, .admin-panel > div > header, .print-hide { display:none!important; } .admin-panel > div, .admin-panel main { padding:0!important; margin:0!important; max-width:none!important; } .label-sheet { display:block!important; margin:0!important; } .product-label { break-after:page; border:0!important; margin:0!important; } .product-label:last-child { break-after:auto; } body { background:white!important; } }`}</style>
+    <style jsx global>{`@media print {
+      @page { size: 40mm 25mm; margin: 0; }
+      html, body { width: 40mm!important; margin: 0!important; padding: 0!important; }
+      .admin-sidebar, .admin-panel > div > header, .print-hide { display: none!important; }
+      .admin-panel, .admin-panel > div, .admin-panel main { width: 40mm!important; max-width: 40mm!important; min-height: 0!important; padding: 0!important; margin: 0!important; }
+      .label-page, .label-workspace, .label-print-section, .label-sheet { display: block!important; width: 40mm!important; max-width: 40mm!important; margin: 0!important; padding: 0!important; border: 0!important; background: white!important; }
+      .label-page > *, .label-workspace > * { margin-top: 0!important; }
+      .product-label { box-sizing: border-box!important; width: 40mm!important; height: 25mm!important; padding: 1mm!important; margin: 0!important; border: 0!important; break-inside: avoid-page; break-after: page; page-break-after: always; }
+      .product-label:last-child { break-after: auto; page-break-after: auto; }
+      body { background: white!important; }
+    }`}</style>
   </div>;
 }
