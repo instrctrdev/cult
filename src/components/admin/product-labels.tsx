@@ -2,12 +2,12 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import JsBarcode from 'jsbarcode';
 import { Barcode, Bluetooth, CheckCircle2, Minus, Plus, Printer } from 'lucide-react';
 import { formatPaise } from '@/lib/money';
 import { BluetoothPrinterManager } from '@/components/admin/bluetooth-printer-manager';
 import {
   BLUETOOTH_PRINTER_EVENT, permittedBluetoothPrinter, printBluetoothLabels,
+  renderBluetoothLabelPreview,
 } from '@/lib/bluetooth-label-printer';
 
 type LabelItem = { id: string; sku: string; name: string; brand: string; variant: string; mrpPaise: number; stock: number };
@@ -19,12 +19,18 @@ function barcodeValue(item: LabelItem) {
 }
 
 function LabelPreview({ item }: { item: LabelItem }) {
-  return <div className="product-label flex h-[25mm] w-[40mm] shrink-0 flex-col items-center justify-center overflow-hidden border border-line bg-white p-[1mm] text-center text-black shadow-sm print:shadow-none">
-    <strong className="max-w-full truncate text-[11px] leading-[12px] uppercase">{item.brand}</strong>
-    <span className="max-w-full truncate text-[8px] leading-[10px]">{item.name}</span>
-    {item.variant && <span className="max-w-full truncate text-[8px] leading-[9px]">{item.variant}</span>}
-    <strong className="text-[11px] leading-[12px]">MRP {formatPaise(item.mrpPaise)}</strong>
-    <svg className="product-label-barcode max-h-[10mm] max-w-full shrink-0" data-barcode={barcodeValue(item)} aria-label={`Barcode ${item.sku}`} />
+  const [image, setImage] = React.useState('');
+  React.useEffect(() => {
+    setImage(renderBluetoothLabelPreview({
+      sku: barcodeValue(item), name: item.name, brand: item.brand,
+      variant: item.variant, mrp: formatPaise(item.mrpPaise),
+    }));
+  }, [item]);
+
+  return <div className="product-label relative h-[25mm] w-[40mm] shrink-0 overflow-hidden border border-line bg-white text-center text-black shadow-sm print:shadow-none">
+    {/* The data URL is generated locally from the exact thermal-printer canvas. */}
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    {image && <img src={image} alt={`${item.brand} ${item.name} ${item.variant} MRP ${formatPaise(item.mrpPaise)}, barcode ${item.sku}`} className="h-full w-full object-contain" />}
   </div>;
 }
 
@@ -49,13 +55,6 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
       return changed ? next : previous;
     });
   }, [items]);
-
-  React.useEffect(() => {
-    document.querySelectorAll<SVGSVGElement>('.product-label-barcode').forEach((node) => {
-      const value = node.dataset.barcode;
-      if (value) JsBarcode(node, value, { format: 'CODE128', width: 1.2, height: 29, margin: 0, displayValue: true, fontSize: 8, textMargin: 1 });
-    });
-  }, [counts, items]);
 
   React.useEffect(() => {
     void permittedBluetoothPrinter().then((port) => setBluetoothReady(Boolean(port)));
@@ -153,7 +152,7 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface/40 p-4"><p className="text-sm"><strong>{labels.length}</strong> labels across <strong>{selectedVariants}</strong> of {items.length} variants</p><div className="flex flex-wrap gap-2">{bluetoothReady && <button type="button" disabled={!labels.length || directPrinting} onClick={() => void printDirectly()} className="inline-flex items-center gap-2 rounded bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"><Bluetooth className="h-4 w-4" />{directPrinting ? 'Sending…' : `Print ${labels.length} by Bluetooth`}</button>}<button type="button" disabled={!labels.length} onClick={() => window.print()} className="inline-flex items-center gap-2 rounded border border-line bg-white px-5 py-2.5 text-sm font-semibold disabled:opacity-40"><Printer className="h-4 w-4" />Use Windows print dialog</button></div></div>
     </section>
 
-    <section className="label-print-section"><div className="print-hide mb-3"><h2 className="font-serif text-lg">Print preview</h2><p className="mt-1 text-xs text-muted">This is how every 40 × 25 mm label will print on the Shreyans P58D through Windows. In Chrome use 100% scale, margins None and headers and footers off.</p></div>
+    <section className="label-print-section"><div className="print-hide mb-3"><h2 className="font-serif text-lg">Print preview</h2><p className="mt-1 text-xs text-muted">This is how every rotated 40 × 25 mm label will print on the Shreyans P58D through Windows. In Chrome use 100% scale, margins None and headers and footers off.</p></div>
       {labels.length ? <div className="label-sheet flex flex-wrap gap-3 rounded-lg border border-dashed border-line bg-surface/40 p-4 print:block print:border-0 print:bg-white print:p-0">{labels.map(({ item, copy }) => <LabelPreview key={`${item.id}-${copy}`} item={item} />)}</div> : <p className="print-hide rounded-lg border border-dashed border-line p-8 text-center text-sm text-muted">Increase a variant count to preview its label.</p>}
     </section>
     <style jsx global>{`@media print {

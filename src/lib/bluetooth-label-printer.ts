@@ -90,28 +90,48 @@ function fitText(context: CanvasRenderingContext2D, text: string, width: number)
   return `${shortened}…`;
 }
 
-function renderLabel(label: BluetoothLabel): Uint8Array {
+function renderLabelCanvas(label: BluetoothLabel) {
+  // Compose in portrait, then rotate the complete image to match how the
+  // 40 × 25 mm stock travels through the P58D.
+  const portrait = document.createElement('canvas');
+  portrait.width = DOTS_HIGH; portrait.height = DOTS_WIDE;
+  const portraitContext = portrait.getContext('2d');
+  if (!portraitContext) throw new Error('This browser could not render the label.');
+  portraitContext.fillStyle = '#fff'; portraitContext.fillRect(0, 0, portrait.width, portrait.height);
+  portraitContext.fillStyle = '#000'; portraitContext.textAlign = 'center'; portraitContext.textBaseline = 'middle';
+  portraitContext.font = '700 21px Arial'; portraitContext.fillText(fitText(portraitContext, label.brand.toUpperCase(), 184), portrait.width / 2, 28);
+  portraitContext.font = '15px Arial'; portraitContext.fillText(fitText(portraitContext, label.name, 184), portrait.width / 2, 58);
+  if (label.variant) {
+    portraitContext.font = '13px Arial'; portraitContext.fillText(fitText(portraitContext, label.variant, 184), portrait.width / 2, 80);
+  }
+  portraitContext.font = '700 19px Arial'; portraitContext.fillText(fitText(portraitContext, `MRP ${label.mrp}`, 184), portrait.width / 2, 108);
+
+  const barcode = document.createElement('canvas');
+  JsBarcode(barcode, label.sku, { format: 'CODE128', width: 2, height: 115, margin: 0, displayValue: true, fontSize: 14, textMargin: 1 });
+  const scale = Math.min(1, 184 / barcode.width);
+  const barcodeWidth = Math.round(barcode.width * scale);
+  const barcodeHeight = Math.min(175, Math.round(barcode.height * scale));
+  portraitContext.drawImage(barcode, (portrait.width - barcodeWidth) / 2, 132, barcodeWidth, barcodeHeight);
+
   const canvas = document.createElement('canvas');
   canvas.width = DOTS_WIDE; canvas.height = DOTS_HIGH;
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) throw new Error('This browser could not render the label.');
   context.fillStyle = '#fff'; context.fillRect(0, 0, DOTS_WIDE, DOTS_HIGH);
-  context.fillStyle = '#000'; context.textAlign = 'center'; context.textBaseline = 'middle';
-  context.font = '700 21px Arial'; context.fillText(fitText(context, label.brand.toUpperCase(), 304), DOTS_WIDE / 2, 18);
-  context.font = '15px Arial'; context.fillText(fitText(context, label.name, 304), DOTS_WIDE / 2, 42);
-  if (label.variant) {
-    context.font = '13px Arial'; context.fillText(fitText(context, label.variant, 304), DOTS_WIDE / 2, 59);
-  }
-  context.font = '700 19px Arial'; context.fillText(fitText(context, `MRP ${label.mrp}`, 304), DOTS_WIDE / 2, 79);
+  context.translate(DOTS_WIDE, 0);
+  context.rotate(Math.PI / 2);
+  context.drawImage(portrait, 0, 0);
+  return canvas;
+}
 
-  const barcode = document.createElement('canvas');
-  JsBarcode(barcode, label.sku, { format: 'CODE128', width: 2, height: 74, margin: 0, displayValue: true, fontSize: 14, textMargin: 1 });
-  const maxWidth = 304;
-  const scale = Math.min(1, maxWidth / barcode.width);
-  const barcodeWidth = Math.round(barcode.width * scale);
-  const barcodeHeight = Math.min(105, Math.round(barcode.height * scale));
-  context.drawImage(barcode, (DOTS_WIDE - barcodeWidth) / 2, 91, barcodeWidth, barcodeHeight);
+export function renderBluetoothLabelPreview(label: BluetoothLabel) {
+  return renderLabelCanvas(label).toDataURL('image/png');
+}
 
+function renderLabel(label: BluetoothLabel): Uint8Array {
+  const canvas = renderLabelCanvas(label);
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) throw new Error('This browser could not render the label.');
   const pixels = context.getImageData(0, 0, DOTS_WIDE, DOTS_HIGH).data;
   const bytesPerRow = Math.ceil(DOTS_WIDE / 8);
   const raster = new Uint8Array(bytesPerRow * DOTS_HIGH);
