@@ -41,6 +41,7 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
   const [creating, setCreating] = React.useState(false);
   const [converting, setConverting] = React.useState(false);
   const [directPrinting, setDirectPrinting] = React.useState(false);
+  const [browserPrinting, setBrowserPrinting] = React.useState(false);
   const [bluetoothReady, setBluetoothReady] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -111,6 +112,27 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
     } finally { setDirectPrinting(false); }
   }
 
+  async function printWithWindowsDialog() {
+    if (!labels.length || browserPrinting) return;
+    setBrowserPrinting(true); setError('');
+    try {
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        const images = [...document.querySelectorAll<HTMLImageElement>('.product-label img')];
+        if (images.length === labels.length && images.every((image) => image.complete && image.naturalWidth > 0)) break;
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+      }
+      const images = [...document.querySelectorAll<HTMLImageElement>('.product-label img')];
+      if (images.length !== labels.length || images.some((image) => !image.complete || image.naturalWidth === 0)) {
+        throw new Error('The labels are still being prepared. Please try Print again.');
+      }
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+      window.print();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not prepare the labels for printing.');
+    } finally { setBrowserPrinting(false); }
+  }
+
   if (!items.length) return <section className="max-w-2xl rounded-lg border border-gold/30 bg-white p-5">
     <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/10"><Barcode className="h-5 w-5" /></span><div><h2 className="font-serif text-lg">Create the first scannable variant</h2><p className="mt-1 text-sm text-muted">This product was saved without a SKU variant. Create a default variant now so its label can be printed and found in offline billing.</p></div></div>
     <div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="rounded border border-line bg-surface/50 p-3 text-sm"><span className="block font-medium">Barcode SKU</span><span className="mt-1 block text-muted">A unique 12-digit number will be generated automatically.</span></div><label className="text-sm">Starting stock<input type="number" min={0} max={1000000} value={stock} onChange={(event) => setStock(Math.max(0, Number(event.target.value) || 0))} className="mt-1 w-full rounded border border-line p-2" /></label></div>
@@ -149,7 +171,7 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
         <div className="flex items-center rounded border border-line"><button type="button" aria-label={`Remove one ${item.variant || item.sku} label`} onClick={() => setCount(item.id, (counts[item.id] ?? 0) - 1)} className="grid h-9 w-9 place-items-center"><Minus className="h-3.5 w-3.5" /></button><input aria-label={`Copies for ${item.variant || item.sku}`} type="number" min={0} max={MAX_COPIES} value={counts[item.id] ?? 0} onChange={(event) => setCount(item.id, Number(event.target.value))} className="h-9 w-16 border-x border-line text-center tabular-nums" /><button type="button" aria-label={`Add one ${item.variant || item.sku} label`} onClick={() => setCount(item.id, (counts[item.id] ?? 0) + 1)} className="grid h-9 w-9 place-items-center"><Plus className="h-3.5 w-3.5" /></button></div>
         <span className="w-20 text-right text-sm font-semibold tabular-nums">{counts[item.id] ?? 0} label{(counts[item.id] ?? 0) === 1 ? '' : 's'}</span>
       </div>)}</div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface/40 p-4"><p className="text-sm"><strong>{labels.length}</strong> labels across <strong>{selectedVariants}</strong> of {items.length} variants</p><div className="flex flex-wrap gap-2">{bluetoothReady && <button type="button" disabled={!labels.length || directPrinting} onClick={() => void printDirectly()} className="inline-flex items-center gap-2 rounded bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"><Bluetooth className="h-4 w-4" />{directPrinting ? 'Sending…' : `Print ${labels.length} by Bluetooth`}</button>}<button type="button" disabled={!labels.length} onClick={() => window.print()} className="inline-flex items-center gap-2 rounded border border-line bg-white px-5 py-2.5 text-sm font-semibold disabled:opacity-40"><Printer className="h-4 w-4" />Use Windows print dialog</button></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface/40 p-4"><div><p className="text-sm"><strong>{labels.length}</strong> labels across <strong>{selectedVariants}</strong> of {items.length} variants</p><p className="mt-1 max-w-xl text-xs text-muted">Keep Layout on Landscape. If Chrome remains on “Total: 0 sheets of paper”, choose “Print using system dialog” (Ctrl+Shift+P) and select the P58D 40 × 25 mm paper form.</p></div><div className="flex flex-wrap gap-2">{bluetoothReady && <button type="button" disabled={!labels.length || directPrinting} onClick={() => void printDirectly()} className="inline-flex items-center gap-2 rounded bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"><Bluetooth className="h-4 w-4" />{directPrinting ? 'Sending…' : `Print ${labels.length} by Bluetooth`}</button>}<button type="button" disabled={!labels.length || browserPrinting} onClick={() => void printWithWindowsDialog()} className="inline-flex items-center gap-2 rounded border border-line bg-white px-5 py-2.5 text-sm font-semibold disabled:opacity-40"><Printer className="h-4 w-4" />{browserPrinting ? 'Preparing labels…' : 'Use Windows print dialog'}</button></div></div>
     </section>
 
     <section className="label-print-section"><div className="print-hide mb-3"><h2 className="font-serif text-lg">Print preview</h2><p className="mt-1 text-xs text-muted">This is how every rotated 40 × 25 mm label will print on the Shreyans P58D through Windows. In Chrome use 100% scale, margins None and headers and footers off.</p></div>
