@@ -99,19 +99,19 @@ function renderLabelCanvas(label: BluetoothLabel) {
   if (!portraitContext) throw new Error('This browser could not render the label.');
   portraitContext.fillStyle = '#fff'; portraitContext.fillRect(0, 0, portrait.width, portrait.height);
   portraitContext.fillStyle = '#000'; portraitContext.textAlign = 'center'; portraitContext.textBaseline = 'middle';
-  portraitContext.font = '700 21px Arial'; portraitContext.fillText(fitText(portraitContext, label.brand.toUpperCase(), 184), portrait.width / 2, 28);
-  portraitContext.font = '15px Arial'; portraitContext.fillText(fitText(portraitContext, label.name, 184), portrait.width / 2, 58);
+  portraitContext.font = '700 21px Arial'; portraitContext.fillText(fitText(portraitContext, label.brand.toUpperCase(), 184), portrait.width / 2, 68);
+  portraitContext.font = '15px Arial'; portraitContext.fillText(fitText(portraitContext, label.name, 184), portrait.width / 2, 98);
   if (label.variant) {
-    portraitContext.font = '13px Arial'; portraitContext.fillText(fitText(portraitContext, label.variant, 184), portrait.width / 2, 80);
+    portraitContext.font = '13px Arial'; portraitContext.fillText(fitText(portraitContext, label.variant, 184), portrait.width / 2, 120);
   }
-  portraitContext.font = '700 19px Arial'; portraitContext.fillText(fitText(portraitContext, `MRP ${label.mrp}`, 184), portrait.width / 2, 108);
+  portraitContext.font = '700 19px Arial'; portraitContext.fillText(fitText(portraitContext, `MRP ${label.mrp}`, 184), portrait.width / 2, 148);
 
   const barcode = document.createElement('canvas');
   JsBarcode(barcode, label.sku, { format: 'CODE128', width: 2, height: 115, margin: 0, displayValue: true, fontSize: 14, textMargin: 1 });
   const scale = Math.min(1, 184 / barcode.width);
   const barcodeWidth = Math.round(barcode.width * scale);
   const barcodeHeight = Math.min(175, Math.round(barcode.height * scale));
-  portraitContext.drawImage(barcode, (portrait.width - barcodeWidth) / 2, 132, barcodeWidth, barcodeHeight);
+  portraitContext.drawImage(barcode, (portrait.width - barcodeWidth) / 2, 172, barcodeWidth, barcodeHeight);
 
   const canvas = document.createElement('canvas');
   canvas.width = DOTS_WIDE; canvas.height = DOTS_HIGH;
