@@ -100,24 +100,28 @@ function renderLabelCanvas(label: BluetoothLabel) {
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) throw new Error('This browser could not render the label.');
   context.fillStyle = '#fff'; context.fillRect(0, 0, DOTS_WIDE, DOTS_HIGH);
+  // The P58D Windows path turns the page during printing. Counter-rotate
+  // the artwork as a single raster so text and barcode read across the roll.
+  context.translate(DOTS_WIDE, 0);
+  context.rotate(Math.PI / 2);
   context.fillStyle = '#000'; context.textAlign = 'center'; context.textBaseline = 'middle';
-  // Use the full label width with a 1 mm safety margin on every side.
-  const contentWidth = DOTS_WIDE - 16;
-  context.font = '700 25px Arial'; context.fillText(fitText(context, labelBrand(label.brand), contentWidth), DOTS_WIDE / 2, 23);
-  context.font = '19px Arial'; context.fillText(fitText(context, label.name, contentWidth), DOTS_WIDE / 2, 49);
+  const contentWidth = DOTS_HIGH - 16;
+  const center = DOTS_HIGH / 2;
+  context.font = '700 23px Arial'; context.fillText(labelBrand(label.brand), center, 38, contentWidth);
+  context.font = '18px Arial'; context.fillText(fitText(context, label.name, contentWidth), center, 73);
   if (label.variant) {
-    context.font = '17px Arial'; context.fillText(fitText(context, label.variant, contentWidth), DOTS_WIDE / 2, 71);
+    context.font = '17px Arial'; context.fillText(fitText(context, label.variant, contentWidth), center, 100);
   }
-  context.font = '700 24px Arial'; context.fillText(fitText(context, `MRP ${label.mrp}`, contentWidth), DOTS_WIDE / 2, 96);
+  context.font = '700 23px Arial'; context.fillText(`MRP ${label.mrp}`, center, 137, contentWidth);
 
   const barcode = document.createElement('canvas');
   JsBarcode(barcode, label.sku, { format: 'CODE128', width: 2, height: 95, margin: 0, displayValue: false });
   const scale = Math.min(1, contentWidth / barcode.width);
   const barcodeWidth = Math.round(barcode.width * scale);
   context.imageSmoothingEnabled = false;
-  context.drawImage(barcode, (DOTS_WIDE - barcodeWidth) / 2, 115, barcodeWidth, 49);
+  context.drawImage(barcode, (DOTS_HIGH - barcodeWidth) / 2, 164, barcodeWidth, 90);
   context.font = '700 20px Arial';
-  context.fillText(label.sku, DOTS_WIDE / 2, 181, contentWidth);
+  context.fillText(label.sku, center, 281, contentWidth);
   return canvas;
 }
 
