@@ -13,15 +13,12 @@ import {
 type LabelItem = { id: string; sku: string; name: string; brand: string; variant: string; mrpPaise: number; stock: number };
 type EmptyProduct = { id: string; price: number; compareAtPrice: number | null };
 const MAX_COPIES = 1000;
-const ALIGNMENT_KEY = 'cult-p58d-windows-alignment';
-type LabelAlignment = { x: number; y: number };
-const clampOffset = (value: number) => Number.isFinite(value) ? Math.max(-8, Math.min(8, value)) : 0;
 
 function barcodeValue(item: LabelItem) {
   return /^[\x20-\x7e]+$/.test(item.sku) ? item.sku : item.id;
 }
 
-function LabelPreview({ item, alignment }: { item: LabelItem; alignment: LabelAlignment }) {
+function LabelPreview({ item }: { item: LabelItem }) {
   const [image, setImage] = React.useState('');
   React.useEffect(() => {
     setImage(renderBluetoothLabelPreview({
@@ -33,7 +30,7 @@ function LabelPreview({ item, alignment }: { item: LabelItem; alignment: LabelAl
   return <div className="product-label relative h-[25mm] w-[40mm] shrink-0 overflow-hidden border border-line bg-white text-center text-black shadow-sm print:shadow-none">
     {/* The data URL is generated locally from the exact thermal-printer canvas. */}
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    {image && <img src={image} alt={`${item.brand} ${item.name} ${item.variant} MRP ${formatPaise(item.mrpPaise)}, barcode ${item.sku}`} className="h-full w-full object-contain" style={{ transform: `translate(${alignment.x}mm, ${alignment.y}mm)` }} />}
+    {image && <img src={image} alt={`${item.brand} ${item.name} ${item.variant} MRP ${formatPaise(item.mrpPaise)}, barcode ${item.sku}`} className="h-full w-full object-contain" />}
   </div>;
 }
 
@@ -47,22 +44,6 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
   const [browserPrinting, setBrowserPrinting] = React.useState(false);
   const [bluetoothReady, setBluetoothReady] = React.useState(false);
   const [error, setError] = React.useState('');
-  const [alignment, setAlignment] = React.useState<LabelAlignment>({ x: 0, y: 0 });
-
-  React.useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(ALIGNMENT_KEY) ?? 'null');
-      if (saved && typeof saved.x === 'number' && typeof saved.y === 'number') {
-        setAlignment({ x: clampOffset(saved.x), y: clampOffset(saved.y) });
-      }
-    } catch { /* Alignment is optional when browser storage is unavailable. */ }
-  }, []);
-
-  function updateAlignment(next: LabelAlignment) {
-    const bounded = { x: clampOffset(next.x), y: clampOffset(next.y) };
-    setAlignment(bounded);
-    try { localStorage.setItem(ALIGNMENT_KEY, JSON.stringify(bounded)); } catch { /* Optional. */ }
-  }
 
   const labels = items.flatMap((item) => Array.from({ length: counts[item.id] ?? 0 }, (_, copy) => ({ item, copy })));
   const selectedVariants = items.filter((item) => (counts[item.id] ?? 0) > 0).length;
@@ -193,17 +174,8 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface/40 p-4"><div><p className="text-sm"><strong>{labels.length}</strong> labels across <strong>{selectedVariants}</strong> of {items.length} variants</p><p className="mt-1 max-w-xl rounded bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950">Required: 40 × 25 mm paper, Portrait layout, 100% scale and no margins. Landscape splits one label across two stickers.</p><p className="mt-1 max-w-xl text-xs text-muted">If Chrome remains on “Total: 0 sheets of paper”, choose “Print using system dialog” (Ctrl+Shift+P) and select the P58D 40 × 25 mm paper form in Portrait.</p></div><div className="flex flex-wrap gap-2">{bluetoothReady && <button type="button" disabled={!labels.length || directPrinting} onClick={() => void printDirectly()} className="inline-flex items-center gap-2 rounded bg-ink px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"><Bluetooth className="h-4 w-4" />{directPrinting ? 'Sending…' : `Print ${labels.length} by Bluetooth`}</button>}<button type="button" disabled={!labels.length || browserPrinting} onClick={() => void printWithWindowsDialog()} className="inline-flex items-center gap-2 rounded border border-line bg-white px-5 py-2.5 text-sm font-semibold disabled:opacity-40"><Printer className="h-4 w-4" />{browserPrinting ? 'Preparing labels…' : 'Print with Windows · Portrait'}</button></div></div>
     </section>
 
-    <section className="print-hide rounded-lg border border-line bg-white p-4">
-      <h2 className="font-serif text-lg">Windows label alignment</h2>
-      <p className="mt-1 max-w-xl text-xs text-muted">Adjust the artwork position if the Windows driver prints off-center. Saved on this computer for Windows printing. Print one copy to check alignment; rotated drivers may swap the directions shown in the preview.</p>
-      <div className="mt-3 flex flex-wrap items-end gap-4">
-        <label className="text-sm">Horizontal offset (mm)<input type="number" min={-8} max={8} step={0.5} value={alignment.x} onChange={(event) => updateAlignment({ ...alignment, x: Number(event.target.value) })} className="mt-1 block w-28 rounded border border-line p-2" /><span className="mt-1 block text-xs text-muted">Negative: left · Positive: right</span></label>
-        <label className="text-sm">Vertical offset (mm)<input type="number" min={-8} max={8} step={0.5} value={alignment.y} onChange={(event) => updateAlignment({ ...alignment, y: Number(event.target.value) })} className="mt-1 block w-28 rounded border border-line p-2" /><span className="mt-1 block text-xs text-muted">Negative: up · Positive: down</span></label>
-        <button type="button" onClick={() => updateAlignment({ x: 0, y: 0 })} className="rounded border border-line px-3 py-2 text-xs">Reset alignment</button>
-      </div>
-    </section>
     <section className="label-print-section"><div className="print-hide mb-3"><h2 className="font-serif text-lg">Print preview</h2><p className="mt-1 text-xs text-muted">This is how every rotated 40 × 25 mm label will print on the Shreyans P58D through Windows. In Chrome choose Portrait, 100% scale, margins None and headers and footers off.</p></div>
-      {labels.length ? <div className="label-sheet flex flex-wrap gap-3 rounded-lg border border-dashed border-line bg-surface/40 p-4 print:block print:border-0 print:bg-white print:p-0">{labels.map(({ item, copy }) => <LabelPreview key={`${item.id}-${copy}`} item={item} alignment={alignment} />)}</div> : <p className="print-hide rounded-lg border border-dashed border-line p-8 text-center text-sm text-muted">Increase a variant count to preview its label.</p>}
+      {labels.length ? <div className="label-sheet flex flex-wrap gap-3 rounded-lg border border-dashed border-line bg-surface/40 p-4 print:block print:border-0 print:bg-white print:p-0">{labels.map(({ item, copy }) => <LabelPreview key={`${item.id}-${copy}`} item={item} />)}</div> : <p className="print-hide rounded-lg border border-dashed border-line p-8 text-center text-sm text-muted">Increase a variant count to preview its label.</p>}
     </section>
     <style jsx global>{`@media print {
       @page { size: 40mm 25mm; margin: 0; }
@@ -212,7 +184,7 @@ export function ProductLabels({ items, emptyProduct }: { items: LabelItem[]; emp
       .admin-panel, .admin-panel > div, .admin-panel main { width: 40mm!important; max-width: 40mm!important; min-height: 0!important; padding: 0!important; margin: 0!important; }
       .label-page, .label-workspace, .label-print-section, .label-sheet { display: block!important; width: 40mm!important; max-width: 40mm!important; margin: 0!important; padding: 0!important; border: 0!important; background: white!important; }
       .label-page > *, .label-workspace > * { margin-top: 0!important; }
-      .product-label { box-sizing: border-box!important; width: 40mm!important; height: 25mm!important; padding: 1mm!important; margin: 0!important; border: 0!important; break-inside: avoid-page; break-after: page; page-break-after: always; }
+      .product-label { box-sizing: border-box!important; width: 40mm!important; height: 25mm!important; padding: 0!important; margin: 0!important; border: 0!important; break-inside: avoid-page; break-after: page; page-break-after: always; }
       .product-label:last-child { break-after: auto; page-break-after: auto; }
       body { background: white!important; }
     }`}</style>

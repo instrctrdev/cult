@@ -103,21 +103,23 @@ function renderLabelCanvas(label: BluetoothLabel) {
   if (!portraitContext) throw new Error('This browser could not render the label.');
   portraitContext.fillStyle = '#fff'; portraitContext.fillRect(0, 0, portrait.width, portrait.height);
   portraitContext.fillStyle = '#000'; portraitContext.textAlign = 'center'; portraitContext.textBaseline = 'middle';
-  portraitContext.font = '700 19px Arial'; portraitContext.fillText(fitText(portraitContext, labelBrand(label.brand), 184), portrait.width / 2, 60);
-  portraitContext.font = '15px Arial'; portraitContext.fillText(fitText(portraitContext, label.name, 184), portrait.width / 2, 90);
+  // Keep the entire composition inside a centered safe area, including the
+  // human-readable SKU, so it does not reach the sticker gap after rotation.
+  portraitContext.font = '700 19px Arial'; portraitContext.fillText(fitText(portraitContext, labelBrand(label.brand), 176), portrait.width / 2, 78);
+  portraitContext.font = '15px Arial'; portraitContext.fillText(fitText(portraitContext, label.name, 176), portrait.width / 2, 104);
   if (label.variant) {
-    portraitContext.font = '13px Arial'; portraitContext.fillText(fitText(portraitContext, label.variant, 184), portrait.width / 2, 112);
+    portraitContext.font = '13px Arial'; portraitContext.fillText(fitText(portraitContext, label.variant, 176), portrait.width / 2, 124);
   }
-  portraitContext.font = '700 19px Arial'; portraitContext.fillText(fitText(portraitContext, `MRP ${label.mrp}`, 184), portrait.width / 2, 140);
+  portraitContext.font = '700 19px Arial'; portraitContext.fillText(fitText(portraitContext, `MRP ${label.mrp}`, 176), portrait.width / 2, 150);
 
   const barcode = document.createElement('canvas');
   JsBarcode(barcode, label.sku, { format: 'CODE128', width: 2, height: 95, margin: 0, displayValue: false });
-  const scale = Math.min(1, 184 / barcode.width);
+  const scale = Math.min(1, 176 / barcode.width);
   const barcodeWidth = Math.round(barcode.width * scale);
-  const barcodeHeight = Math.min(75, Math.round(barcode.height * scale));
-  portraitContext.drawImage(barcode, (portrait.width - barcodeWidth) / 2, 165, barcodeWidth, barcodeHeight);
+  const barcodeHeight = Math.min(45, Math.round(barcode.height * scale));
+  portraitContext.drawImage(barcode, (portrait.width - barcodeWidth) / 2, 170, barcodeWidth, barcodeHeight);
   portraitContext.font = '700 16px Arial';
-  portraitContext.fillText(fitText(portraitContext, label.sku, 184), portrait.width / 2, 250);
+  portraitContext.fillText(label.sku, portrait.width / 2, 234, 176);
 
   const canvas = document.createElement('canvas');
   canvas.width = DOTS_WIDE; canvas.height = DOTS_HIGH;
