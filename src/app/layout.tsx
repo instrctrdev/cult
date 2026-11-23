@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Cinzel, Cormorant_Garamond, Dancing_Script, DM_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import { BRAND, BRAND_COLORS } from '@/lib/brand';
 import { env, publicEnv } from '@/lib/env';
 import { MetaPixel } from '@/components/analytics/meta-pixel';
@@ -7,34 +7,34 @@ import { Providers } from './providers';
 import './globals.css';
 
 /**
- * The typefaces used by the CULT storefront. Self-hosted by next/font,
- * so there is no render-blocking request to Google and no layout shift.
+ * Bundled typefaces keep both builds and page rendering independent of Google.
  */
-const cinzel = Cinzel({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
+const cinzel = localFont({
+  src: '../fonts/Cinzel.ttf',
+  weight: '400 700',
   variable: '--font-cinzel',
   display: 'swap',
 });
 
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  style: ['normal', 'italic'],
+const cormorant = localFont({
+  src: [
+    { path: '../fonts/CormorantGaramond.ttf', weight: '400 600', style: 'normal' },
+    { path: '../fonts/CormorantGaramond-Italic.ttf', weight: '400 600', style: 'italic' },
+  ],
   variable: '--font-cormorant',
   display: 'swap',
 });
 
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const dmSans = localFont({
+  src: '../fonts/DMSans.ttf',
+  weight: '400 700',
   variable: '--font-dm-sans',
   display: 'swap',
 });
 
-const dancingScript = Dancing_Script({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
+const dancingScript = localFont({
+  src: '../fonts/DancingScript.ttf',
+  weight: '500 700',
   variable: '--font-script',
   display: 'swap',
 });
