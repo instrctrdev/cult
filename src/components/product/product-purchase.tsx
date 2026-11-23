@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Heart, Minus, Plus, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import type { ProductDetailDTO } from '@/types';
  * "Add to bag" is always reachable no matter how far the customer has scrolled.
  */
 export function ProductPurchase({
-  product,
+  product: initialProduct,
   isSignedIn,
   freeShippingThresholdPaise,
   shippingFeePaise,
@@ -37,6 +38,19 @@ export function ProductPurchase({
   /** Delivery waived when paying online; COD still pays `shippingFeePaise`. */
   prepaidFreeShipping: boolean;
 }) {
+  const { data: product } = useQuery({
+    queryKey: ['product-live-stock', initialProduct.slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/${encodeURIComponent(initialProduct.slug)}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Could not refresh product stock.');
+      return response.json() as Promise<ProductDetailDTO>;
+    },
+    initialData: initialProduct,
+    initialDataUpdatedAt: 0,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  });
   const { addItem } = useCartActions();
   const expressCheckout = useExpressCheckout();
   const wishlist = useWishlist({ isSignedIn });

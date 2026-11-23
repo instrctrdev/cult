@@ -33,8 +33,8 @@ export default async function OfflineSaleDetailPage({ params }: { params: Promis
         <section className="rounded-lg border border-line bg-white p-5 text-sm"><h2 className="font-serif text-lg">Payment</h2><dl className="mt-3 space-y-2">
           <div className="flex justify-between"><dt>Mode</dt><dd className="font-semibold">{sale.paymentMethod}</dd></div>
           <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatPaise(toPaise(sale.subtotal))}</dd></div>
-          <div className="flex justify-between"><dt>Coupon {sale.couponCode ? `(${sale.couponCode})` : ''}</dt><dd>-{formatPaise(toPaise(sale.couponDiscount))}</dd></div>
-          <div className="flex justify-between"><dt>Discount ({Number(sale.manualDiscountPercent)}%)</dt><dd>-{formatPaise(toPaise(sale.manualDiscount))}</dd></div>
+          {sale.couponCode && <div className="flex justify-between"><dt>Coupon ({sale.couponCode})</dt><dd>-{formatPaise(toPaise(sale.couponDiscount))}</dd></div>}
+          <div className="flex justify-between"><dt>Discount {Number(sale.manualDiscountPercent) > 0 ? `(${Number(sale.manualDiscountPercent)}%)` : '(fixed)'}</dt><dd>-{formatPaise(toPaise(sale.manualDiscount))}</dd></div>
           <div className="flex justify-between"><dt>Round off</dt><dd>{formatPaise(toPaise(sale.roundOff))}</dd></div>
           <div className="flex justify-between border-t border-line pt-3 text-lg font-semibold"><dt>Total paid</dt><dd>{formatPaise(toPaise(sale.grandTotal))}</dd></div>
         </dl></section>

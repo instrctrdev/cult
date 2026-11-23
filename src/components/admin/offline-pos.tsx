@@ -13,10 +13,13 @@ export function OfflinePos() {
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<Item[]>([]);
   const [cart, setCart] = React.useState<CartLine[]>([]);
-  const [couponCode, setCouponCode] = React.useState('');
-  const [manualDiscountPercent, setManualDiscountPercent] = React.useState('0');
+  const [discountMode, setDiscountMode] = React.useState<'PERCENTAGE' | 'FIXED'>('PERCENTAGE');
+  const [discountValue, setDiscountValue] = React.useState('0');
   const [customerName, setCustomerName] = React.useState('');
   const [customerPhone, setCustomerPhone] = React.useState('');
+  const [customers, setCustomers] = React.useState<{ phone: string; name: string }[]>([]);
+  const [customerLookupError, setCustomerLookupError] = React.useState('');
+  const nameEdited = React.useRef(false);
   const [method, setMethod] = React.useState<'CASH' | 'CARD'>('CASH');
   const [busy, setBusy] = React.useState(false);
   const [quoting, setQuoting] = React.useState(false);
@@ -27,16 +30,37 @@ export function OfflinePos() {
   const [key, setKey] = React.useState(() => crypto.randomUUID());
   const scanRef = React.useRef<HTMLInputElement>(null);
   const subtotal = cart.reduce((sum, item) => sum + item.pricePaise * item.quantity, 0);
-  const discountPercent = Number(manualDiscountPercent || 0);
+  const discountPercent = discountMode === 'PERCENTAGE' ? Number(discountValue || 0) : 0;
+  const discountAmount = discountMode === 'FIXED' ? Number(discountValue || 0) : 0;
   const normalizedPhone = customerPhone.replace(/\D/g, '').replace(/^91(?=[6-9]\d{9}$)/, '');
   const phoneValid = /^[6-9]\d{9}$/.test(normalizedPhone);
-  const fingerprint = JSON.stringify({ cart: cart.map(({ id, quantity }) => [id, quantity]), couponCode: couponCode.trim(), discountPercent, normalizedPhone });
+  const fingerprint = JSON.stringify({ cart: cart.map(({ id, quantity }) => [id, quantity]), discountPercent, discountAmount, normalizedPhone });
   const currentQuote = quote?.fingerprint === fingerprint ? quote : null;
   const makePayload = () => ({ idempotencyKey: key, items: cart.map(({ id, quantity }) => ({ variantId: id, quantity })),
-    paymentMethod: method, customerName, customerPhone: normalizedPhone, couponCode, manualDiscountPercent: discountPercent });
+    paymentMethod: method, customerName, customerPhone: normalizedPhone, manualDiscountPercent: discountPercent, manualDiscountAmount: discountAmount });
 
   React.useEffect(() => {
-    if (!cart.length || !Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) {
+    setCustomers([]); setCustomerLookupError('');
+    if (!/^\d{4,10}$/.test(normalizedPhone)) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/admin/offline-sales/customers?phone=${encodeURIComponent(normalizedPhone)}`, { signal: controller.signal, cache: 'no-store' });
+        if (!response.ok) throw new Error('Customer lookup unavailable. You can enter the name manually.');
+        const data = await response.json() as { customers: { phone: string; name: string }[] };
+        if (controller.signal.aborted) return;
+        setCustomers(data.customers);
+        const exact = data.customers.find((customer) => customer.phone === normalizedPhone);
+        if (exact && !nameEdited.current) setCustomerName(exact.name);
+      } catch {
+        if (!controller.signal.aborted) setCustomerLookupError('Customer lookup unavailable. You can enter the name manually.');
+      }
+    }, 250);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [normalizedPhone]);
+
+  React.useEffect(() => {
+    if (!cart.length || !Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100 || !Number.isFinite(discountAmount) || discountAmount < 0) {
       setQuote(null); setQuoting(false); return;
     }
     const controller = new AbortController();
@@ -99,7 +123,8 @@ export function OfflinePos() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error?.message ?? 'Unable to complete sale.');
-      setCart([]); setCouponCode(''); setManualDiscountPercent('0'); setCustomerName(''); setCustomerPhone(''); setKey(crypto.randomUUID());
+      setCart([]); setDiscountValue('0'); setCustomerName(''); setCustomerPhone(''); nameEdited.current = false; setKey(crypto.randomUUID());
+      router.refresh();
       router.push(`/admin/offline-sales/${data.id}`);
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to complete sale.'); }
     finally { setBusy(false); scanRef.current?.focus(); }
@@ -125,13 +150,15 @@ export function OfflinePos() {
     <section className="h-fit rounded-lg border border-line bg-white p-5">
       <h2 className="font-serif text-xl">Payment</h2>
       <div className="mt-4 grid gap-3 text-sm">
-        <label>Customer name (optional)<input value={customerName} onChange={(e) => setCustomerName(e.target.value)} maxLength={150} className="mt-1 w-full rounded border border-line p-2" /></label>
-        <label>Phone <span className="text-danger">*</span><input required inputMode="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} maxLength={14} placeholder="10 digit mobile number" className="mt-1 w-full rounded border border-line p-2" /></label>
+        <label>Mobile number <span className="text-danger">*</span><input required inputMode="tel" autoComplete="off" value={customerPhone} onChange={(e) => { setCustomerPhone(e.target.value); setCustomerName(''); nameEdited.current = false; }} maxLength={14} placeholder="10 digit mobile number" className="mt-1 w-full rounded border border-line p-2" /></label>
+        {customers.length > 0 && <ul aria-label="Previous customers" className="overflow-hidden rounded border border-line">{customers.map((customer) => <li key={customer.phone}><button type="button" className="w-full p-2 text-left hover:bg-surface" onClick={() => { setCustomerPhone(customer.phone); setCustomerName(customer.name); nameEdited.current = false; }}><strong>{customer.name}</strong><span className="ml-2 text-xs text-muted">{customer.phone}</span></button></li>)}</ul>}
+        {customerLookupError && <p role="status" className="text-xs text-muted">{customerLookupError}</p>}
+        <label>Customer name (optional)<input value={customerName} onChange={(e) => { nameEdited.current = true; setCustomerName(e.target.value); }} maxLength={150} className="mt-1 w-full rounded border border-line p-2" /></label>
         {customerPhone && !phoneValid && <p className="text-xs text-danger">Enter a valid 10 digit Indian mobile number.</p>}
-        <label>Coupon code<input value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="mt-1 w-full rounded border border-line p-2" placeholder="Optional" /></label>
-        <label>Additional discount (%)<input type="text" inputMode="decimal" value={manualDiscountPercent} onChange={(e) => setManualDiscountPercent(e.target.value)} className="mt-1 w-full rounded border border-line p-2" /></label>
+        <label>Discount type<select value={discountMode} onChange={(e) => { setDiscountMode(e.target.value as 'PERCENTAGE' | 'FIXED'); setDiscountValue('0'); }} className="mt-1 w-full rounded border border-line p-2"><option value="PERCENTAGE">Percentage (%)</option><option value="FIXED">Fixed amount (Rs.)</option></select></label>
+        <label>Discount ({discountMode === 'FIXED' ? 'Rs.' : '%'})<input type="number" min={0} max={discountMode === 'PERCENTAGE' ? 100 : undefined} step="0.01" inputMode="decimal" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} className="mt-1 w-full rounded border border-line p-2" /></label>
         <label>Payment method<select value={method} onChange={(e) => setMethod(e.target.value as 'CASH' | 'CARD')} className="mt-1 w-full rounded border border-line p-2"><option value="CASH">Cash received</option><option value="CARD">Card payment confirmed on terminal</option></select></label>
-        <div className="border-t border-line pt-3"><div className="flex justify-between"><span>Subtotal</span><strong>{formatPaise(subtotal)}</strong></div><div className="mt-2 flex justify-between"><span>Coupon discount</span><span>-{formatPaise(currentQuote?.couponDiscountPaise ?? 0)}</span></div><div className="mt-2 flex justify-between"><span>Additional discount ({Number.isFinite(discountPercent) ? discountPercent : 0}%)</span><span>-{formatPaise(currentQuote?.manualDiscountPaise ?? 0)}</span></div>{currentQuote && <div className="mt-2 flex justify-between"><span>Round off</span><span>{formatPaise(currentQuote.roundOffPaise)}</span></div>}<div className="mt-3 flex justify-between border-t border-line pt-3 text-lg font-semibold"><span>Total due</span><span>{quoting ? 'Updating…' : currentQuote ? formatPaise(currentQuote.grandTotalPaise) : '—'}</span></div></div>
+        <div className="border-t border-line pt-3"><div className="flex justify-between"><span>Subtotal</span><strong>{formatPaise(subtotal)}</strong></div><div className="mt-2 flex justify-between"><span>Discount{discountMode === 'PERCENTAGE' ? ` (${Number.isFinite(discountPercent) ? discountPercent : 0}%)` : ' (fixed)'}</span><span>-{formatPaise(currentQuote?.manualDiscountPaise ?? 0)}</span></div>{currentQuote && <div className="mt-2 flex justify-between"><span>Round off</span><span>{formatPaise(currentQuote.roundOffPaise)}</span></div>}<div className="mt-3 flex justify-between border-t border-line pt-3 text-lg font-semibold"><span>Total due</span><span>{quoting ? 'Updating…' : currentQuote ? formatPaise(currentQuote.grandTotalPaise) : '—'}</span></div></div>
         {error && <p role="alert" className="rounded bg-red-50 p-2 text-danger">{error}</p>}
         <button type="button" disabled={!cart.length || busy || quoting || !currentQuote || !phoneValid} onClick={() => void complete()} className="rounded bg-ink p-3 font-semibold text-white disabled:opacity-50">{busy ? 'Completing…' : 'Payment received — complete sale'}</button>
       </div>

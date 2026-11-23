@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { AppError, badRequest, outOfStock } from '@/lib/errors';
 import { toDecimal, toPaise } from '@/lib/money';
+import { offlineDiscountPaise } from '@/lib/offline-discount';
 
 export const offlineSaleInput = z.object({
   idempotencyKey: z.string().uuid(),
@@ -13,7 +14,8 @@ export const offlineSaleInput = z.object({
   customerPhone: z.string().trim().max(32).default(''),
   paymentMethod: z.enum(['CASH', 'CARD']),
   couponCode: z.string().trim().max(64).optional(),
-  manualDiscountPercent: z.number().min(0).max(100).default(0),
+  manualDiscountPercent: z.number().min(0).max(100).multipleOf(0.01).default(0),
+  manualDiscountAmount: z.number().min(0).max(9999999.99).multipleOf(0.01).default(0),
   expectedGrandTotalPaise: z.number().int().min(0).optional(),
 });
 
@@ -27,8 +29,12 @@ function normalizedPhone(value: string) {
   return local;
 }
 
-function percentageDiscount(amountPaise: number, percent: number) {
-  return Math.round(amountPaise * percent / 100);
+function manualDiscount(amountPaise: number, input: OfflineSaleInput) {
+  try {
+    return offlineDiscountPaise(amountPaise, input.manualDiscountPercent, toPaise(input.manualDiscountAmount));
+  } catch (error) {
+    throw badRequest(error instanceof Error ? error.message : 'Invalid discount.');
+  }
 }
 
 export async function quoteOfflineSale(input: OfflineSaleInput) {
@@ -82,7 +88,7 @@ export async function quoteOfflineSale(input: OfflineSaleInput) {
     couponDiscountPaise = Math.max(0, Math.min(eligiblePaise, couponDiscountPaise));
     if (!couponDiscountPaise) throw new AppError('COUPON_INVALID', 'This coupon does not discount these items.');
   }
-  const manualDiscountPaise = percentageDiscount(subtotalPaise - couponDiscountPaise, input.manualDiscountPercent);
+  const manualDiscountPaise = manualDiscount(subtotalPaise - couponDiscountPaise, input);
   const unroundedPaise = subtotalPaise - couponDiscountPaise - manualDiscountPaise;
   const grandTotalPaise = Math.round(unroundedPaise / 100) * 100;
   return { subtotalPaise, couponDiscountPaise, manualDiscountPercent: input.manualDiscountPercent, manualDiscountPaise,
@@ -157,7 +163,7 @@ export async function createOfflineSale(input: OfflineSaleInput, cashierId: stri
         couponId = coupon.id;
         couponCode = coupon.code;
       }
-      const manualDiscountPaise = percentageDiscount(subtotalPaise - couponDiscountPaise, input.manualDiscountPercent);
+      const manualDiscountPaise = manualDiscount(subtotalPaise - couponDiscountPaise, input);
       const unroundedPaise = subtotalPaise - couponDiscountPaise - manualDiscountPaise;
       const grandPaise = Math.round(unroundedPaise / 100) * 100;
       if (input.expectedGrandTotalPaise === undefined || input.expectedGrandTotalPaise !== grandPaise) {

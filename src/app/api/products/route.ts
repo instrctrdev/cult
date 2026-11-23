@@ -28,8 +28,7 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
   });
 
   return NextResponse.json(result, {
-    // Short shared cache: listings change with stock, so this is a
-    // stale-while-revalidate window rather than a long TTL.
-    headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    // Availability shares inventory with offline billing and must be current.
+    headers: { 'Cache-Control': 'no-store' },
   });
 });

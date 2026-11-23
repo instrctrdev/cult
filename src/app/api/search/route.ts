@@ -17,6 +17,6 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
   void SearchService.log(q, result.total);
 
   return NextResponse.json(result, {
-    headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
+    headers: { 'Cache-Control': 'no-store' },
   });
 });
