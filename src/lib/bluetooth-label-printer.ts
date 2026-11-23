@@ -107,21 +107,21 @@ function renderLabelCanvas(label: BluetoothLabel) {
   context.fillStyle = '#000'; context.textAlign = 'center'; context.textBaseline = 'middle';
   const contentWidth = DOTS_HIGH - 16;
   const center = DOTS_HIGH / 2;
-  context.font = '700 23px Arial'; context.fillText(labelBrand(label.brand), center, 38, contentWidth);
-  context.font = '18px Arial'; context.fillText(fitText(context, label.name, contentWidth), center, 73);
+  context.font = '700 23px Arial'; context.fillText(labelBrand(label.brand), center, 20, contentWidth);
+  context.font = '18px Arial'; context.fillText(fitText(context, label.name, contentWidth), center, 48);
   if (label.variant) {
-    context.font = '17px Arial'; context.fillText(fitText(context, label.variant, contentWidth), center, 100);
+    context.font = '17px Arial'; context.fillText(fitText(context, label.variant, contentWidth), center, 70);
   }
-  context.font = '700 23px Arial'; context.fillText(`MRP ${label.mrp}`, center, 137, contentWidth);
+  context.font = '700 23px Arial'; context.fillText(`MRP ${label.mrp}`, center, 99, contentWidth);
 
   const barcode = document.createElement('canvas');
   JsBarcode(barcode, label.sku, { format: 'CODE128', width: 2, height: 95, margin: 0, displayValue: false });
   const scale = Math.min(1, contentWidth / barcode.width);
   const barcodeWidth = Math.round(barcode.width * scale);
   context.imageSmoothingEnabled = false;
-  context.drawImage(barcode, (DOTS_HIGH - barcodeWidth) / 2, 164, barcodeWidth, 90);
+  context.drawImage(barcode, (DOTS_HIGH - barcodeWidth) / 2, 119, barcodeWidth, 59);
   context.font = '700 20px Arial';
-  context.fillText(label.sku, center, 281, contentWidth);
+  context.fillText(label.sku, center, 202, contentWidth);
   return canvas;
 }
 
